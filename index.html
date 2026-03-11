@@ -1,96 +1,602 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>C++ Browser Compiler</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minja  - IDE</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- ACE Editor Core & Autocomplete -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+    
+    <!-- Language Runtimes -->
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 
-<style>
-body{
-font-family:Arial;
-background:#1e1e1e;
-color:white;
-padding:20px;
-}
+    <style>
+        :root {
+            --bg-dark: #1e1e1e;
+            --bg-sidebar: #252526;
+            --bg-titlebar: #323233;
+            --bg-statusbar: #007acc;
+            --border-color: #3c3c3c;
+            --text-main: #cccccc;
+        }
+        body { margin: 0; background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Title Bar */
+        .titlebar { height: 35px; background: var(--bg-titlebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--border-color); z-index: 10; }
+        .toolbar-btn { background: none; border: none; color: #ccc; padding: 5px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .toolbar-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .toolbar-btn.primary { background: #0066cc; color: white; border-radius: 3px; padding: 4px 10px; }
+        
+        /* Main Layout */
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #bbb; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-actions i { padding: 5px; cursor: pointer; opacity: 0.7; }
+        .sidebar-actions i:hover { opacity: 1; }
+        
+        /* File Tree */
+        .file-tree { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; user-select: none; font-size: 13px; }
+        .tree-item { display: flex; align-items: center; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+        .tree-item:hover { background: rgba(255,255,255,0.05); }
+        .tree-item.selected { background: #094771; color: white; }
+        .tree-item i { width: 16px; margin-right: 6px; text-align: center; }
+        .folder-icon { color: #dcb67a; }
+        .file-icon { color: #519aba; }
+        .react-icon { color: #61dafb; }
+        .sql-icon { color: #f29111; }
+        .py-icon { color: #3572A5; }
+        .tree-children { display: none; }
+        .tree-children.open { display: block; }
+        .folder-chevron { font-size: 10px; width: 16px; margin-right: 2px; transition: transform 0.1s; }
 
-textarea{
-width:100%;
-height:250px;
-background:#111;
-color:#00ff88;
-font-family:monospace;
-padding:10px;
-font-size:14px;
-}
+        /* Editor Area */
+        .editor-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
+        .tabs-container { height: 35px; display: flex; background: var(--bg-dark); align-items: flex-end; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
+        .tab { background: var(--bg-titlebar); padding: 5px 15px; border-right: 1px solid var(--border-color); cursor: pointer; font-size: 13px; color: #aaa; display: flex; align-items: center; min-width: 100px; }
+        .tab.active { background: var(--bg-dark); color: #fff; border-top: 1px solid var(--bg-statusbar); margin-bottom: -1px; }
+        .tab .close { margin-left: auto; opacity: 0; padding-left: 10px; font-size: 12px; }
+        .tab:hover .close { opacity: 0.7; }
+        #editor { flex: 1; width: 100%; font-size: 15px; }
 
-button{
-margin-top:10px;
-padding:10px 20px;
-font-size:16px;
-cursor:pointer;
-}
-
-#output{
-margin-top:20px;
-background:black;
-padding:15px;
-min-height:120px;
-}
-</style>
-
+        /* Bottom Panel */
+        .bottom-panel { height: 220px; background: #1e1e1e; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .panel-header { display: flex; background: var(--bg-titlebar); padding: 0 10px; font-size: 12px; }
+        .panel-tab { padding: 5px 10px; color: #888; cursor: pointer; border-bottom: 1px solid transparent; }
+        .panel-tab.active { color: #fff; border-bottom-color: var(--bg-statusbar); }
+        .terminal { flex: 1; background: #000; color: #0f0; font-family: 'Consolas', monospace; padding: 10px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
+        .terminal .err { color: #f48771; }
+        .terminal .info { color: #6a9955; }
+        .terminal table { border-collapse: collapse; margin-top: 5px; color: #ddd; }
+        .terminal th, .terminal td { border: 1px solid #555; padding: 2px 8px; font-size: 12px; }
+        .terminal th { background: #333; color: #fff; }
+        
+        /* Modals */
+        .modal-bg { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-box { background: var(--bg-sidebar); padding: 20px; width: 400px; border-radius: 5px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        .modal-input { width: 100%; padding: 8px; margin: 10px 0; background: #3c3c3c; border: 1px solid #555; color: white; }
+        
+        /* Context Menu */
+        .context-menu { position: absolute; background: #252526; border: 1px solid #454545; padding: 5px 0; min-width: 150px; z-index: 1000; display: none; }
+        .context-item { padding: 5px 15px; cursor: pointer; font-size: 13px; }
+        .context-item:hover { background: #094771; color: white; }
+    </style>
 </head>
-
 <body>
 
-<h2>Browser C++ Compiler</h2>
+    <div class="titlebar">
+        <b style="color:white; margin-right:20px; display:flex; align-items:center;"><i class="fas fa-code" style="margin-right:10px; color:#007acc;"></i> WebCode Studio</b>
+        <button class="toolbar-btn" onclick="ui.createNewFile()"><i class="fas fa-file"></i> New File</button>
+        <button class="toolbar-btn" onclick="ui.createNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</button>
+        <div style="flex:1"></div>
+        <button class="toolbar-btn primary" onclick="runner.run()"><i class="fas fa-play"></i> Run</button>
+    </div>
 
-<textarea id="code">
-#include <iostream>
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>Explorer</span>
+                <div class="sidebar-actions">
+                    <i class="fas fa-sync-alt" onclick="ui.refreshTree()" title="Refresh"></i>
+                    <i class="fas fa-plus" onclick="ui.createNewFile()" title="New File"></i>
+                </div>
+            </div>
+            <ul class="file-tree" id="fileTree"></ul>
+        </div>
 
-int main(){
-    std::cout << "Hello from C++!";
-    return 0;
-}
-</textarea>
+        <div class="editor-area">
+            <div class="tabs-container" id="tabsContainer"></div>
+            <div id="editor"></div>
+            
+            <div class="bottom-panel">
+                <div class="panel-header">
+                    <div class="panel-tab active" onclick="ui.showPanel('terminal')">Terminal / Output</div>
+                    <div class="panel-tab" onclick="ui.showPanel('preview')">Web Preview</div>
+                </div>
+                <div id="terminalPanel" class="terminal">Ready. Use 'Run' to execute code.</div>
+                <iframe id="previewPanel" style="display:none; flex:1; background:white; border:none;"></iframe>
+            </div>
+        </div>
+    </div>
 
-<br>
-<button onclick="run()">Run</button>
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-item" onclick="ui.createNewFile()"><i class="fas fa-file"></i> New File</div>
+        <div class="context-item" onclick="ui.createNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</div>
+        <div class="context-item" onclick="ui.renameItem()"><i class="fas fa-pencil-alt"></i> Rename</div>
+        <div class="context-item" style="color:#f48771;" onclick="ui.deleteItem()"><i class="fas fa-trash"></i> Delete</div>
+    </div>
 
-<div id="output"></div>
+    <!-- Input Modal -->
+    <div class="modal-bg" id="inputModal">
+        <div class="modal-box">
+            <h5 id="modalTitle" class="text-light">Input</h5>
+            <input type="text" id="modalInput" class="modal-input" placeholder="Enter name...">
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn btn-sm btn-secondary" onclick="ui.closeModal()">Cancel</button>
+                <button class="btn btn-sm btn-primary" onclick="ui.modalAction()">OK</button>
+            </div>
+        </div>
+    </div>
 
-<script src="https://cdn.jsdelivr.net/gh/emscripten-core/emscripten@main/src/emrun_postjs.js"></script>
+    <script>
+        /* ===================== FILE SYSTEM ===================== */
+        const fs = {
+            structure: {
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>My Page</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link rel="stylesheet" href="style.css">\n</head>\n<body class="p-4 bg-dark text-white">\n    <h1 class="display-4">Hello, Bootstrap!</h1>\n    <p id="demo-text">This text will change.</p>\n    <button class="btn btn-primary" onclick="app.run()">Click Me</button>\n    <script src="script.js"><\/script>\n</body>\n</html>' },
+                'style.css': { type: 'file', content: 'body {\n    transition: background 0.3s;\n}\n.active-bg {\n    background-color: #0056b3 !important;\n}\n#demo-text {\n    color: #17a2b8;\n    font-weight: bold;\n}' },
+                'script.js': { type: 'file', content: 'const app = {\n    run: function() {\n        document.body.classList.toggle("active-bg");\n        document.getElementById("demo-text").innerText = "Updated via JS!";\n        console.log("Script executed!");\n    }\n};\n\nconsole.log("App loaded");' },
+                'App.jsx': { type: 'file', content: 'function App() {\n  const [count, setCount] = React.useState(0);\n  \n  return (\n    <div className="p-4 bg-secondary text-white rounded shadow">\n      <h1>React Component</h1>\n      <p>Count: {count}</p>\n      <button className="btn btn-success" onClick={() => setCount(c => c + 1)}>Add +</button>\n    </div>\n  );\n}\n\n// Render\nReactDOM.render(<App />, document.getElementById("root"));' },
+                'main.py': { type: 'file', content: 'import math\n\ndef greet(name):\n    return f"Hello, {name}!"\n\nprint(greet("World"))\nprint("Square root of 16 is", math.sqrt(16))' },
+                'database.sql': { type: 'file', content: '-- SQLite Database (MySQL Syntax Compatible)\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, role TEXT);\nINSERT INTO users (name, role) VALUES ("Alice", "Admin");\nINSERT INTO users (name, role) VALUES ("Bob", "User");\nSELECT * FROM users;' }
+            },
+            
+            getNode: function(pathArr) {
+                let current = this.structure;
+                for(let i=0; i<pathArr.length; i++) {
+                    if(!current[pathArr[i]]) return null;
+                    if(i === pathArr.length - 1) return current[pathArr[i]];
+                    current = current[pathArr[i]].children;
+                }
+                return current;
+            },
+            
+            saveFile: function(pathStr, content) {
+                const arr = pathStr.split('/');
+                const name = arr.pop();
+                let parent = this.structure;
+                arr.forEach(p => parent = parent[p].children);
+                parent[name].content = content;
+            }
+        };
 
-<script>
+        const state = { openTabs: [], activeFile: null };
+        let editor;
+        let sqlDb = null;
 
-async function run(){
+        window.onload = () => {
+            // Initialize ACE
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/html");
+            
+            // Enable IntelliSense / Autocomplete
+            ace.require("ace/ext/language_tools");
+            editor.setOptions({
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true,
+                enableSnippets: true
+            });
 
-let code=document.getElementById("code").value
-let output=document.getElementById("output")
+            ui.refreshTree();
+        };
 
-output.innerText="Compiling..."
+        /* ===================== UI MANAGER ===================== */
+        const ui = {
+            refreshTree: function() {
+                const container = document.getElementById('fileTree');
+                container.innerHTML = '';
+                this.renderLevel(fs.structure, container, 0);
+            },
 
-try{
+            renderLevel: function(node, container, depth) {
+                const keys = Object.keys(node).sort((a, b) => (node[a].type === 'folder' ? 0 : 1) - (node[b].type === 'folder' ? 0 : 1));
+                
+                keys.forEach(name => {
+                    const item = node[name];
+                    const li = document.createElement('li');
+                    const path = this.getPathFromElement(container) + name; 
+                    
+                    if (item.type === 'folder') {
+                        li.innerHTML = `
+                            <div class="tree-item folder" style="padding-left: ${depth * 12}px" data-path="${path}" data-type="folder">
+                                <i class="fas fa-chevron-down folder-chevron"></i>
+                                <i class="fas fa-folder folder-icon"></i>
+                                ${name}
+                            </div>`;
+                        const childUl = document.createElement('ul');
+                        childUl.className = 'tree-children open';
+                        childUl.dataset.parentPath = path + '/';
+                        li.appendChild(childUl);
+                        
+                        this.renderLevel(item.children, childUl, depth + 1);
+                        
+                        li.querySelector('.tree-item').onclick = (e) => {
+                            e.stopPropagation();
+                            const icon = li.querySelector('.folder-chevron');
+                            childUl.classList.toggle('open');
+                            icon.style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
+                        };
+                        
+                    } else {
+                        const iconClass = this.getIconClass(name);
+                        li.innerHTML = `
+                            <div class="tree-item file" style="padding-left: ${depth * 12 + 18}px" data-path="${path}" data-type="file">
+                                <i class="${iconClass}"></i>
+                                ${name}
+                            </div>`;
+                        li.querySelector('.tree-item').onclick = (e) => {
+                            e.stopPropagation();
+                            this.openFile(path, name);
+                        };
+                    }
 
-let response=await fetch("https://wandbox.org/api/compile.json",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-compiler:"gcc-head",
-code:code
-})
-})
+                    li.querySelector('.tree-item').oncontextmenu = (e) => {
+                        e.preventDefault();
+                        this.showContextMenu(e, path, item.type);
+                    };
+                    container.appendChild(li);
+                });
+            },
 
-let result=await response.json()
+            openFile: function(path, name) {
+                if (!state.openTabs.includes(path)) state.openTabs.push(path);
+                state.activeFile = path;
+                
+                const node = fs.getNode(path.split('/'));
+                if (node) {
+                    editor.setValue(node.content, -1);
+                    editor.session.setMode(this.getAceMode(name));
+                    this.highlightActive(path);
+                    this.refreshTabs();
+                }
+            },
 
-output.innerText=result.program_output || result.compiler_error
+            refreshTabs: function() {
+                const container = document.getElementById('tabsContainer');
+                container.innerHTML = '';
+                state.openTabs.forEach(path => {
+                    const name = path.split('/').pop();
+                    const isActive = path === state.activeFile ? 'active' : '';
+                    const div = document.createElement('div');
+                    div.className = `tab ${isActive}`;
+                    div.innerHTML = `${name} <span class="close" onclick="event.stopPropagation(); ui.closeTab('${path}')">&times;</span>`;
+                    div.onclick = () => this.openFile(path, name);
+                    container.appendChild(div);
+                });
+            },
 
-}catch(e){
-output.innerText="Error: "+e
-}
+            closeTab: function(path) {
+                state.openTabs = state.openTabs.filter(p => p !== path);
+                if (state.activeFile === path) {
+                    state.activeFile = state.openTabs[0] || null;
+                    if (state.activeFile) {
+                        const node = fs.getNode(state.activeFile.split('/'));
+                        editor.setValue(node.content, -1);
+                        editor.session.setMode(this.getAceMode(state.activeFile.split('/').pop()));
+                    } else {
+                        editor.setValue('');
+                    }
+                }
+                this.refreshTabs();
+            },
 
-}
+            showPanel: function(type) {
+                document.getElementById('terminalPanel').style.display = type === 'terminal' ? 'block' : 'none';
+                document.getElementById('previewPanel').style.display = type === 'preview' ? 'flex' : 'none';
+                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+                event.target.classList.add('active');
+            },
 
-</script>
+            getIconClass(name) {
+                const ext = name.split('.').pop();
+                if (ext === 'html') return 'fab fa-html5 text-warning';
+                if (ext === 'css') return 'fab fa-css3-alt text-info';
+                if (ext === 'js') return 'fab fa-js text-warning';
+                if (ext === 'jsx') return 'fab fa-react react-icon';
+                if (ext === 'py') return 'fab fa-python py-icon';
+                if (ext === 'sql') return 'fas fa-database sql-icon';
+                return 'fas fa-file-code file-icon';
+            },
+            getAceMode(name) {
+                const ext = name.split('.').pop();
+                const modes = { 
+                    html: 'ace/mode/html', 
+                    css: 'ace/mode/css', 
+                    js: 'ace/mode/javascript', 
+                    jsx: 'ace/mode/jsx', 
+                    py: 'ace/mode/python', 
+                    sql: 'ace/mode/sql' 
+                };
+                return modes[ext] || 'ace/mode/text';
+            },
+            highlightActive: function(path) {
+                document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('selected'));
+                const item = document.querySelector(`.tree-item[data-path="${path}"]`);
+                if(item) item.classList.add('selected');
+            },
+            getPathFromElement: function(el) { return el.dataset.parentPath || ''; },
+            
+            showContextMenu: function(e, path, type) {
+                const menu = document.getElementById('contextMenu');
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+                menu.style.display = 'block';
+                menu.dataset.targetPath = path;
+                menu.dataset.targetType = type;
+            },
+            
+            createNewFile: function() {
+                this.modalAction = () => {
+                    const name = document.getElementById('modalInput').value;
+                    if (!name) return;
+                    const path = document.getElementById('contextMenu').dataset.targetPath || '';
+                    let parent = fs.structure;
+                    const type = document.getElementById('contextMenu').dataset.targetType;
+                    
+                    if (type === 'folder' && path) parent = fs.getNode(path.split('/')).children;
+                    else if (path) {
+                        const arr = path.split('/');
+                        arr.pop();
+                        if(arr.length > 0) parent = fs.getNode(arr).children;
+                    }
+                    
+                    parent[name] = { type: 'file', content: '' };
+                    this.refreshTree();
+                    this.closeModal();
+                };
+                this.openModal('New File', 'filename.ext');
+            },
+            createNewFolder: function() {
+                this.modalAction = () => {
+                    const name = document.getElementById('modalInput').value;
+                    if (!name) return;
+                    const path = document.getElementById('contextMenu').dataset.targetPath || '';
+                    let parent = fs.structure;
+                    const type = document.getElementById('contextMenu').dataset.targetType;
+                    
+                    if (type === 'folder' && path) parent = fs.getNode(path.split('/')).children;
+                    else if (path) {
+                        const arr = path.split('/');
+                        arr.pop();
+                        if(arr.length > 0) parent = fs.getNode(arr).children;
+                    }
+                    
+                    parent[name] = { type: 'folder', children: {} };
+                    this.refreshTree();
+                    this.closeModal();
+                };
+                this.openModal('New Folder', 'folder name');
+            },
+            deleteItem: function() {
+                const path = document.getElementById('contextMenu').dataset.targetPath;
+                if (!path) return;
+                if(!confirm(`Delete ${path}?`)) return;
+                
+                const arr = path.split('/');
+                const name = arr.pop();
+                let parent = fs.structure;
+                arr.forEach(p => parent = parent[p].children);
+                delete parent[name];
+                
+                if(state.openTabs.includes(path)) this.closeTab(path);
+                this.refreshTree();
+            },
+            renameItem: function() {
+                const oldPath = document.getElementById('contextMenu').dataset.targetPath;
+                const oldArr = oldPath.split('/');
+                const oldName = oldArr.pop();
+                
+                this.modalAction = () => {
+                    const newName = document.getElementById('modalInput').value;
+                    if(!newName) return;
+                    
+                    let parent = fs.structure;
+                    oldArr.forEach(p => parent = parent[p].children);
+                    
+                    parent[newName] = parent[oldName];
+                    delete parent[oldName];
+                    
+                    const newFullPath = oldArr.length > 0 ? oldArr.join('/') + '/' + newName : newName;
+                    const tabIdx = state.openTabs.indexOf(oldPath);
+                    if(tabIdx > -1) state.openTabs[tabIdx] = newFullPath;
+                    if(state.activeFile === oldPath) state.activeFile = newFullPath;
+                    
+                    this.refreshTree();
+                    this.closeModal();
+                };
+                this.openModal('Rename', oldName);
+            },
 
+            openModal: function(title, placeholder) {
+                document.getElementById('modalTitle').innerText = title;
+                document.getElementById('modalInput').placeholder = placeholder;
+                document.getElementById('modalInput').value = '';
+                document.getElementById('inputModal').style.display = 'flex';
+                document.getElementById('contextMenu').style.display = 'none';
+                document.getElementById('modalInput').focus();
+            },
+            closeModal: function() {
+                document.getElementById('inputModal').style.display = 'none';
+            },
+            modalAction: function() { /* Dynamic function */ }
+        };
+
+        document.addEventListener('click', () => { document.getElementById('contextMenu').style.display = 'none'; });
+
+        /* ===================== RUNNER ENGINE ===================== */
+        const runner = {
+            run: async function() {
+                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
+                const path = state.activeFile; 
+                if(!path) return;
+                
+                const ext = path.split('.').pop();
+                this.clearTerminal();
+                
+                // FIX: Pass 'path' to functions that need it
+                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb(path);
+                else if (ext === 'jsx') this.runReact(path);
+                else if (ext === 'py') this.runPython(path);
+                else if (ext === 'sql') await this.runSQL();
+                else this.log("Unsupported file type.");
+            },
+
+            // Smart Web Runner
+            runWeb: function(activePath) {
+                let targetHtmlPath = activePath;
+                const ext = activePath.split('.').pop();
+
+                // If running CSS or JS, try to find index.html to inject it into
+                if (ext !== 'html') {
+                    if (fs.structure['index.html']) {
+                        targetHtmlPath = 'index.html';
+                        this.log(`Running index.html (Entry point for ${ext})`, false, true);
+                    } else {
+                        this.log(`Error: No index.html found to run linked ${ext} file.`, true);
+                        return;
+                    }
+                }
+
+                const node = fs.getNode(targetHtmlPath.split('/'));
+                if (!node) { this.log("File not found: " + targetHtmlPath, true); return; }
+
+                let htmlContent = node.content;
+
+                // --- SMART BUNDLER ---
+                // Automatically inject content of linked local files (simulates server behavior)
+                
+                // 1. Inject CSS
+                htmlContent = htmlContent.replace(/<link\s+[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (match, p1) => {
+                    const fileNode = fs.getNode(p1.split('/'));
+                    if (fileNode && fileNode.content) {
+                        return `<style>/* Source: ${p1} */\n${fileNode.content}</style>`;
+                    }
+                    return match; // Keep original if file not found in virtual FS
+                });
+
+                // 2. Inject JS
+                htmlContent = htmlContent.replace(/<script\s+[^>]*src=["']([\w\.\/]+\.js)["'][^>]*>\s*<\/script>/gi, (match, p1) => {
+                    const fileNode = fs.getNode(p1.split('/'));
+                    if (fileNode && fileNode.content) {
+                        return `<script>/* Source: ${p1} */\n${fileNode.content}<\/script>`;
+                    }
+                    return match;
+                });
+
+                document.getElementById('previewPanel').srcdoc = htmlContent;
+                ui.showPanel('preview');
+                this.log("Preview generated.");
+            },
+
+            runReact: function(path) {
+                const code = fs.getNode(path.split('/')).content;
+                ui.showPanel('preview');
+                const iframe = document.getElementById('previewPanel');
+                
+                const html = `
+                    <div id="root"></div>
+                    <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+                    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+                    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+                    <script type="text/babel">
+                        ${code}
+                    <\/script>
+                `;
+                iframe.srcdoc = html;
+                this.log("React transpiling...");
+            },
+
+            runPython: function(path) {
+                const code = fs.getNode(path.split('/')).content;
+                Sk.configure({
+                    output: (t) => this.log(t),
+                    read: (x) => {
+                        if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                            throw "File not found: '" + x + "'";
+                        return Sk.builtinFiles["files"][x];
+                    },
+                    __future__: Sk.python3
+                });
+                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code, true))
+                    .catch((e) => this.log(e.toString(), true));
+            },
+
+            runSQL: async function() {
+                const code = editor.getValue(); // Get current content directly
+                this.log("Executing SQL...", false, true);
+
+                if (!sqlDb) {
+                    try {
+                        const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` });
+                        sqlDb = new SQL.Database(); 
+                    } catch(e) {
+                        this.log("Failed to load SQL Engine", true);
+                        return;
+                    }
+                }
+
+                try {
+                    const results = sqlDb.exec(code);
+                    if(results.length === 0) {
+                        this.log("Query executed successfully. (No results returned)");
+                    } else {
+                        results.forEach(res => {
+                            let html = `<table><thead><tr>`;
+                            res.columns.forEach(c => html += `<th>${c}</th>`);
+                            html += `</tr></thead><tbody>`;
+                            res.values.forEach(row => {
+                                html += `<tr>`;
+                                row.forEach(val => html += `<td>${val}</td>`);
+                                html += `</tr>`;
+                            });
+                            html += `</tbody></table>`;
+                            
+                            const el = document.getElementById('terminalPanel');
+                            const div = document.createElement('div');
+                            div.innerHTML = html;
+                            el.appendChild(div);
+                        });
+                    }
+                } catch(e) {
+                    this.log("SQL Error: " + e.message, true);
+                }
+            },
+
+            log: function(text, isError = false, isInfo = false) {
+                const el = document.getElementById('terminalPanel');
+                const div = document.createElement('div');
+                div.innerText = text;
+                if(isError) div.className = 'err';
+                if(isInfo) div.className = 'info';
+                el.appendChild(div);
+                el.scrollTop = el.scrollHeight;
+            },
+            clearTerminal: function() { 
+                document.getElementById('terminalPanel').innerHTML = ''; 
+                ui.showPanel('terminal'); 
+            }
+        };
+    </script>
 </body>
 </html>
