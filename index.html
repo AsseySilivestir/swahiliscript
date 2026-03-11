@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KiswahiliScript IDE</title>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#667eea">
+
+    <style>
+        /* --- BASE LAYOUT --- */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1e1e1e;
+            color: #cccccc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background-color: #252526;
+            padding: 10px 20px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h2 { margin: 0; font-size: 18px; color: #ffffff; }
+        .header p { margin: 0; font-size: 12px; color: #888; }
+
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #3c3c3c;
+        }
+        .editor-section h4 {
+            background: #252526;
+            margin: 0;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #888;
+            border-bottom: 1px solid #3c3c3c;
+        }
+        #editor {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .output-section {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+        }
+        .output-section h4 {
+            background: #252526;
+            margin: 0;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #888;
+            border-bottom: 1px solid #3c3c3c;
+        }
+        .output {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .controls {
+            background: #252526;
+            padding: 8px 15px;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:hover { background: #1177bb; }
+        button.clear { background: #5a5a5a; }
+        button.clear:hover { background: #6e6e6e; }
+
+        /* --- MONACO UI CUSTOMIZATION --- */
+        
+        .monaco-editor .suggest-widget {
+            background-color: #252526 !important;
+            border: 1px solid #3c3c3c !important;
+            border-radius: 6px !important;
+            width: 650px !important;
+        }
+
+        .monaco-editor .monaco-list .monaco-list-row .monaco-highlighted-label .highlight {
+            color: #4ec9b0 !important; 
+            font-weight: bold !important;
+        }
+        
+        .monaco-editor .suggest-widget .details {
+            background-color: #252526 !important;
+            border-left: 1px solid #3c3c3c !important;
+            padding: 10px !important;
+            font-size: 13px !important;
+            line-height: 1.4em !important;
+        }
+        
+        .monaco-editor .monaco-hover {
+            background-color: #252526 !important;
+            border: 1px solid #454545 !important;
+            max-width: 500px !important;
+        }
+        .monaco-editor .monaco-hover .markdown-hover .hover-contents {
+            padding: 10px;
+            font-size: 13px;
+        }
+
+        .monaco-editor .suggest-widget .monaco-list .monaco-list-row.focused {
+            background-color: #094771 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>⚡ KiswahiliScript IDE</h2>
+    <p>Lugha ya Programu ya Kiswahili</p>
+</div>
+
+<div class="main">
+    <div class="editor-section">
+        <h4>Code</h4>
+        <div id="editor"></div>
+    </div>
+    
+    <div class="output-section">
+        <h4>Output</h4>
+        <div id="output" class="output"></div>
+    </div>
+</div>
+
+<div class="controls">
+    <button class="run" onclick="runCompiler()">▶ Run</button>
+    <button class="clear" onclick="clearOutput()">🗑 Clear</button>
+</div>
+
+<!-- MONACO EDITOR -->
+<script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+<!-- ================================================================== -->
+<!-- LINK YOUR SWAHILI.JS HERE (Must define tokenList, reserved, Interpreter) -->
+<!-- ================================================================== -->
+<script src="swahili.js"></script> 
+
+<script>
+    if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+
+    let editor;
+
+    require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@0.45.0/min/vs' } });
+
+    require(["vs/editor/editor.main"], function () {
+
+        // Safety check: Ensure swahili.js loaded correctly
+        if (typeof reserved === 'undefined') {
+            console.error("Error: 'reserved' is not defined. Check swahili.js");
+        }
+
+        // 1. DEFINE LANGUAGE
+        monaco.languages.register({ id: "kiswahili" });
+
+        // 2. SYNTAX HIGHLIGHTING (Using variables from swahili.js)
+        monaco.languages.setMonarchTokensProvider("kiswahili", {
+            keywords: Object.keys(reserved), // Uses 'reserved' from swahili.js
+            operators: ['+', '-', '*', '/', '%', '=', '>', '<', '!', '>=', '<=', '!=', '==', '=>'],
+            symbols: /[=><!~?:&|+\-*\/\^%]+/,
+            tokenizer: {
+                root: [
+                    [/[a-zA-Z_$][\w$]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
+                    [/'([^'\\]|\\.)*$/, 'string.invalid'],
+                    [/'/, 'string', '@string'],
+                    [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                    [/\d+/, 'number'],
+                    [/[{}()\[\]]/, '@brackets'],
+                    [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
+                    [/[;,.]/, 'delimiter'],
+                    [/:/, 'delimiter'],
+                    [/\/\/.*$/, 'comment'],
+                ],
+                string: [
+                    [/[^\\']+/, 'string'],
+                    [/\\./, 'string.escape'],
+                    [/'/, 'string', '@pop']
+                ],
+            }
+        });
+
+        // 3. AUTOCOMPLETE
+        monaco.languages.registerCompletionItemProvider('kiswahili', {
+            provideCompletionItems: (model, position) => {
+                
+                const suggestions = Object.keys(reserved).map(key => {
+                    const type = reserved[key];
+                    
+                    if (type === 'FUNCTION') {
+                        return {
+                            label: key,
+                            kind: monaco.languages.CompletionItemKind.Function,
+                            insertText: `kazi \${1:jina}:\${2:vipeo}: => {\n\t\${0}\n};`,
+                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                            documentation: getSwahiliDocs(key),
+                            detail: 'Neno msingi kwa ajili ya shughuli'
+                        };
+                    }
+                    
+                    if (type === 'IF') {
+                         return {
+                            label: key,
+                            kind: monaco.languages.CompletionItemKind.Snippet,
+                            insertText: `kama (\${1:hali}) {\n\t\${0}\n} au {\n\t\n};`,
+                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                            documentation: getSwahiliDocs(key),
+                            detail: 'Mlinganyo na Maamuzi'
+                        };
+                    }
+
+                    if (type === 'WHILE') {
+                         return {
+                            label: key,
+                            kind: monaco.languages.CompletionItemKind.Snippet,
+                            insertText: `wakati (\${1:hali}) {\n\t\${0}\n};`,
+                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                            documentation: getSwahiliDocs(key),
+                            detail: 'Mduara wa kujirudia'
+                        };
+                    }
+
+                    if (type === 'FOR') {
+                         return {
+                            label: key,
+                            kind: monaco.languages.CompletionItemKind.Snippet,
+                            insertText: `ikiwa (\${1:anzisha}; \${2:hali}; \${3:badilisha}) {\n\t\${0}\n};`,
+                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                            documentation: getSwahiliDocs(key),
+                            detail: 'Mduara wa hesabu'
+                        };
+                    }
+
+                    return {
+                        label: key,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: key + ' ',
+                        documentation: getSwahiliDocs(key),
+                        detail: 'Neno msingi'
+                    };
+                });
+
+                suggestions.push({
+                    label: '=>',
+                    kind: monaco.languages.CompletionItemKind.Operator,
+                    insertText: '=>',
+                    documentation: getSwahiliDocs('mshale'),
+                    detail: 'Kiashiria cha Mshale'
+                });
+
+                return { suggestions };
+            }
+        });
+
+        // 4. HOVER PROVIDER
+        monaco.languages.registerHoverProvider('kiswahili', {
+            provideHover: function(model, position) {
+                const word = model.getWordAtPosition(position);
+                if (!word) return null;
+                
+                const token = word.word;
+
+                if (reserved[token]) {
+                    return {
+                        contents: [
+                            { value: '**' + token + '**' },
+                            { value: getSwahiliDocs(token) }
+                        ]
+                    };
+                }
+                return null;
+            }
+        });
+
+        // 5. INITIALIZE EDITOR
+        editor = monaco.editor.create(document.getElementById("editor"), {
+            value: `// Andika msimbo wako hapa
+// Jaribu kuandika 'kazi' au 'kama' uone maelezo
+
+kazi salimia:jina: => {
+    andika 'Habari ' + jina;
+};
+
+salimia:'Rafiki':;
+`,
+            language: "kiswahili",
+            theme: "vs-dark",
+            fontSize: 15,
+            automaticLayout: true,
+            minimap: { enabled: true },
+        });
+
+    });
+
+    /* --- SWAHILI DOCUMENTATION LOGIC --- */
+    // This function creates the Swahili tooltips. 
+    // It uses the 'reserved' object keys from your swahili.js
+    
+    function getSwahiliDocs(key) {
+        const docs = {
+            "kazi": 
+                "Hii ni **shughuli (function)**.\n\n" +
+                "Inatumika kuunda msimbo unao weza kuitwa tena na tena. " +
+                "Unaweza kuipa jina na vipeo (parameters).\n\n" +
+                "**Mfano:**\n" +
+                "`kazi jumla:a:b: => { rudisha a + b; };`",
+            
+            "andika": 
+                "Hii ni **amri ya kuonyesha (print)**.\n\n" +
+                "Inatumika kuandika matokeo kwenye skrini.\n\n" +
+                "**Mfano:**\n" +
+                "`andika 'Habari Dunia';`",
+            
+            "rudisha": 
+                "Hii ni **amri ya kurudisha (return)**.\n\n" +
+                "Inatumika ndani ya `kazi` kumaliza shughuli na kutoa jibu.\n\n" +
+                "**Mfano:**\n" +
+                "`rudisha x + y;`",
+            
+            "kama": 
+                "Hii ni **taarifa ya maamuzi (if statement)**.\n\n" +
+                "Inakagua hali fulani. Ikiwa kweli, msimbo unaendelea.\n\n" +
+                "**Mfano:**\n" +
+                "`kama (x > 10) { andika 'Kubwa'; }`",
+            
+            "au": 
+                "Hii inamaanisha **'au' (else/or)**.\n\n" +
+                "Inatumika pamoja na `kama` kama mbadala.\n\n" +
+                "**Mfano:**\n" +
+                "`kama (x > 10) { ... } au { ... };`",
+            
+            "wakati": 
+                "Hii ni **mduara wa wakati (while loop)**.\n\n" +
+                "Msimbo unaendelea kukimbia wakati hali ni kweli.\n\n" +
+                "**Mfano:**\n" +
+                "`wakati (x < 5) { x = x + 1; };`",
+            
+            "ikiwa": 
+                "Hii ni **mduara wa hesabu (for loop)**.\n\n" +
+                "Inatumika kwa hesabu zinazojirudia.\n\n" +
+                "**Mfano:**\n" +
+                "`ikiwa (i=0; i<10; i=i+1) { ... };`",
+            
+            "mshale": 
+                "Hii ni **ishara ya mshale (fat arrow)**.\n\n" +
+                "Inatumika kuanza msimbo wa shughuli.\n\n" +
+                "**Matumizi:** `kazi => { ... };`"
+        };
+
+        return docs[key] || "Hakuna maelezo kwa sasa.";
+    }
+
+    /* --- COMPILER EXECUTION LOGIC --- */
+    
+    function runCompiler() {
+        const code = editor.getValue();
+        const output = document.getElementById("output");
+        output.innerHTML = "";
+
+        try {
+            // Check if Interpreter class exists (from swahili.js)
+            if (typeof Interpreter === "function") {
+                
+                // Optional: Clear logs if your JS uses a global log object
+                if (typeof globalLog !== 'undefined' && globalLog.clear) {
+                    globalLog.clear();
+                }
+
+                // Run the interpreter
+                const interpreter = new Interpreter(code);
+                
+                // Logic to display output
+                // Adjust this part based on exactly how your swahili.js outputs data
+                
+                if (typeof globalLog !== 'undefined' && globalLog.values) {
+                    // If using the globalLog pattern from previous examples
+                    let text = '';
+                    globalLog.values.forEach(v => {
+                        if (v.log) text += v.log + '\n';
+                        if (v.error) text += 'KOSA: ' + v.error.message + '\n';
+                    });
+                    output.textContent = text || "(Hakuna matokeo)";
+                } else {
+                    // Fallback: Try to capture console.log if your interpreter uses that
+                    let logs = [];
+                    const originalLog = console.log;
+                    console.log = function(...args) { logs.push(args.join(' ')); };
+                    
+                    // Run interpretation here (assuming it runs immediately in constructor or has a run method)
+                    // If Interpreter needs a specific run method, call it: interpreter.run();
+                    
+                    console.log = originalLog;
+                    output.textContent = logs.join('\n') || "(Hakuna matokeo)";
+                }
+
+            } else {
+                output.innerHTML = "<span style='color:#f44747;'>KOSA: Darasa la 'Interpreter' halijapatikana.</span>\n<span style='color:#888;'>Hakikisha faili la swahili.js limefungwa vizuri.</span>";
+            }
+        } catch (e) {
+            output.innerHTML = "<span style='color:#f44747;'>KOSA LA KUKIMBIA: " + e.message + "</span>";
+            console.error(e);
+        }
+    }
+
+    function clearOutput() {
+        document.getElementById("output").innerHTML = '';
+        if(typeof globalLog !== 'undefined' && globalLog) globalLog.clear();
+    }
+</script>
+</body>
+</html>
