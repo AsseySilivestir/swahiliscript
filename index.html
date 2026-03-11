@@ -1,443 +1,584 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>KiswahiliScript IDE</title>
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#667eea">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebCode Studio - IDE</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- ACE Editor Core & Autocomplete -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+    
+    <!-- Language Runtimes -->
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 
     <style>
-        /* --- BASE LAYOUT --- */
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #1e1e1e;
-            color: #cccccc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+        :root {
+            --bg-dark: #1e1e1e;
+            --bg-sidebar: #252526;
+            --bg-titlebar: #323233;
+            --bg-statusbar: #007acc;
+            --border-color: #3c3c3c;
+            --text-main: #cccccc;
         }
-
-        .header {
-            background-color: #252526;
-            padding: 10px 20px;
-            border-bottom: 1px solid #3c3c3c;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header h2 { margin: 0; font-size: 18px; color: #ffffff; }
-        .header p { margin: 0; font-size: 12px; color: #888; }
-
-        .main {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-
-        .editor-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #3c3c3c;
-        }
-        .editor-section h4 {
-            background: #252526;
-            margin: 0;
-            padding: 8px 10px;
-            font-size: 12px;
-            color: #888;
-            border-bottom: 1px solid #3c3c3c;
-        }
-        #editor {
-            flex: 1;
-            min-height: 0;
-        }
-
-        .output-section {
-            width: 350px;
-            display: flex;
-            flex-direction: column;
-            background: #1e1e1e;
-        }
-        .output-section h4 {
-            background: #252526;
-            margin: 0;
-            padding: 8px 10px;
-            font-size: 12px;
-            color: #888;
-            border-bottom: 1px solid #3c3c3c;
-        }
-        .output {
-            flex: 1;
-            padding: 10px;
-            overflow-y: auto;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-        }
-
-        .controls {
-            background: #252526;
-            padding: 8px 15px;
-            border-top: 1px solid #3c3c3c;
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            background: #0e639c;
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 2px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        button:hover { background: #1177bb; }
-        button.clear { background: #5a5a5a; }
-        button.clear:hover { background: #6e6e6e; }
-
-        /* --- MONACO UI CUSTOMIZATION --- */
+        body { margin: 0; background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        .monaco-editor .suggest-widget {
-            background-color: #252526 !important;
-            border: 1px solid #3c3c3c !important;
-            border-radius: 6px !important;
-            width: 650px !important;
-        }
-
-        .monaco-editor .monaco-list .monaco-list-row .monaco-highlighted-label .highlight {
-            color: #4ec9b0 !important; 
-            font-weight: bold !important;
-        }
+        /* Title Bar */
+        .titlebar { height: 35px; background: var(--bg-titlebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--border-color); z-index: 10; }
+        .toolbar-btn { background: none; border: none; color: #ccc; padding: 5px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .toolbar-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .toolbar-btn.primary { background: #0066cc; color: white; border-radius: 3px; padding: 4px 10px; }
         
-        .monaco-editor .suggest-widget .details {
-            background-color: #252526 !important;
-            border-left: 1px solid #3c3c3c !important;
-            padding: 10px !important;
-            font-size: 13px !important;
-            line-height: 1.4em !important;
-        }
+        /* Main Layout */
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #bbb; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-actions i { padding: 5px; cursor: pointer; opacity: 0.7; }
+        .sidebar-actions i:hover { opacity: 1; }
         
-        .monaco-editor .monaco-hover {
-            background-color: #252526 !important;
-            border: 1px solid #454545 !important;
-            max-width: 500px !important;
-        }
-        .monaco-editor .monaco-hover .markdown-hover .hover-contents {
-            padding: 10px;
-            font-size: 13px;
-        }
+        /* File Tree */
+        .file-tree { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; user-select: none; font-size: 13px; }
+        .tree-item { display: flex; align-items: center; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+        .tree-item:hover { background: rgba(255,255,255,0.05); }
+        .tree-item.selected { background: #094771; color: white; }
+        .tree-item i { width: 16px; margin-right: 6px; text-align: center; }
+        .folder-icon { color: #dcb67a; }
+        .file-icon { color: #519aba; }
+        .react-icon { color: #61dafb; }
+        .sql-icon { color: #f29111; }
+        .py-icon { color: #3572A5; }
+        .tree-children { display: none; }
+        .tree-children.open { display: block; }
+        .folder-chevron { font-size: 10px; width: 16px; margin-right: 2px; transition: transform 0.1s; }
 
-        .monaco-editor .suggest-widget .monaco-list .monaco-list-row.focused {
-            background-color: #094771 !important;
-        }
+        /* Editor Area */
+        .editor-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
+        .tabs-container { height: 35px; display: flex; background: var(--bg-dark); align-items: flex-end; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
+        .tab { background: var(--bg-titlebar); padding: 5px 15px; border-right: 1px solid var(--border-color); cursor: pointer; font-size: 13px; color: #aaa; display: flex; align-items: center; min-width: 100px; }
+        .tab.active { background: var(--bg-dark); color: #fff; border-top: 1px solid var(--bg-statusbar); margin-bottom: -1px; }
+        .tab .close { margin-left: auto; opacity: 0; padding-left: 10px; font-size: 12px; }
+        .tab:hover .close { opacity: 0.7; }
+        #editor { flex: 1; width: 100%; font-size: 15px; }
+
+        /* Bottom Panel */
+        .bottom-panel { height: 220px; background: #1e1e1e; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .panel-header { display: flex; background: var(--bg-titlebar); padding: 0 10px; font-size: 12px; }
+        .panel-tab { padding: 5px 10px; color: #888; cursor: pointer; border-bottom: 1px solid transparent; }
+        .panel-tab.active { color: #fff; border-bottom-color: var(--bg-statusbar); }
+        .terminal { flex: 1; background: #000; color: #0f0; font-family: 'Consolas', monospace; padding: 10px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
+        .terminal .err { color: #f48771; }
+        .terminal .info { color: #6a9955; }
+        .terminal table { border-collapse: collapse; margin-top: 5px; color: #ddd; }
+        .terminal th, .terminal td { border: 1px solid #555; padding: 2px 8px; font-size: 12px; }
+        .terminal th { background: #333; color: #fff; }
+        
+        /* Modals */
+        .modal-bg { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-box { background: var(--bg-sidebar); padding: 20px; width: 400px; border-radius: 5px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        .modal-input { width: 100%; padding: 8px; margin: 10px 0; background: #3c3c3c; border: 1px solid #555; color: white; }
+        
+        /* Context Menu */
+        .context-menu { position: absolute; background: #252526; border: 1px solid #454545; padding: 5px 0; min-width: 150px; z-index: 1000; display: none; }
+        .context-item { padding: 5px 15px; cursor: pointer; font-size: 13px; }
+        .context-item:hover { background: #094771; color: white; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h2>⚡ KiswahiliScript IDE</h2>
-    <p>Lugha ya Programu ya Kiswahili</p>
-</div>
-
-<div class="main">
-    <div class="editor-section">
-        <h4>Code</h4>
-        <div id="editor"></div>
+    <div class="titlebar">
+        <b style="color:white; margin-right:20px; display:flex; align-items:center;"><i class="fas fa-code" style="margin-right:10px; color:#007acc;"></i> WebCode Studio</b>
+        <button class="toolbar-btn" onclick="ui.createNewFile()"><i class="fas fa-file"></i> New File</button>
+        <button class="toolbar-btn" onclick="ui.createNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</button>
+        <div style="flex:1"></div>
+        <button class="toolbar-btn primary" onclick="runner.run()"><i class="fas fa-play"></i> Run</button>
     </div>
-    
-    <div class="output-section">
-        <h4>Output</h4>
-        <div id="output" class="output"></div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>Explorer</span>
+                <div class="sidebar-actions">
+                    <i class="fas fa-sync-alt" onclick="ui.refreshTree()" title="Refresh"></i>
+                    <i class="fas fa-plus" onclick="ui.createNewFile()" title="New File"></i>
+                </div>
+            </div>
+            <ul class="file-tree" id="fileTree"></ul>
+        </div>
+
+        <div class="editor-area">
+            <div class="tabs-container" id="tabsContainer"></div>
+            <div id="editor"></div>
+            
+            <div class="bottom-panel">
+                <div class="panel-header">
+                    <div class="panel-tab active" onclick="ui.showPanel('terminal')">Terminal / Output</div>
+                    <div class="panel-tab" onclick="ui.showPanel('preview')">Web Preview</div>
+                </div>
+                <div id="terminalPanel" class="terminal">Ready. Use 'Run' to execute code.</div>
+                <iframe id="previewPanel" style="display:none; flex:1; background:white; border:none;"></iframe>
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="controls">
-    <button class="run" onclick="runCompiler()">▶ Run</button>
-    <button class="clear" onclick="clearOutput()">🗑 Clear</button>
-</div>
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-item" onclick="ui.createNewFile()"><i class="fas fa-file"></i> New File</div>
+        <div class="context-item" onclick="ui.createNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</div>
+        <div class="context-item" onclick="ui.renameItem()"><i class="fas fa-pencil-alt"></i> Rename</div>
+        <div class="context-item" style="color:#f48771;" onclick="ui.deleteItem()"><i class="fas fa-trash"></i> Delete</div>
+    </div>
 
-<!-- MONACO EDITOR -->
-<script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+    <!-- Input Modal -->
+    <div class="modal-bg" id="inputModal">
+        <div class="modal-box">
+            <h5 id="modalTitle" class="text-light">Input</h5>
+            <input type="text" id="modalInput" class="modal-input" placeholder="Enter name...">
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn btn-sm btn-secondary" onclick="ui.closeModal()">Cancel</button>
+                <button class="btn btn-sm btn-primary" onclick="ui.modalAction()">OK</button>
+            </div>
+        </div>
+    </div>
 
-<!-- ================================================================== -->
-<!-- LINK YOUR SWAHILI.JS HERE (Must define tokenList, reserved, Interpreter) -->
-<!-- ================================================================== -->
-<script src="swahili.js"></script> 
-
-<script>
-    if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
-
-    let editor;
-
-    require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@0.45.0/min/vs' } });
-
-    require(["vs/editor/editor.main"], function () {
-
-        // Safety check: Ensure swahili.js loaded correctly
-        if (typeof reserved === 'undefined') {
-            console.error("Error: 'reserved' is not defined. Check swahili.js");
-        }
-
-        // 1. DEFINE LANGUAGE
-        monaco.languages.register({ id: "kiswahili" });
-
-        // 2. SYNTAX HIGHLIGHTING (Using variables from swahili.js)
-        monaco.languages.setMonarchTokensProvider("kiswahili", {
-            keywords: Object.keys(reserved), // Uses 'reserved' from swahili.js
-            operators: ['+', '-', '*', '/', '%', '=', '>', '<', '!', '>=', '<=', '!=', '==', '=>'],
-            symbols: /[=><!~?:&|+\-*\/\^%]+/,
-            tokenizer: {
-                root: [
-                    [/[a-zA-Z_$][\w$]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
-                    [/'([^'\\]|\\.)*$/, 'string.invalid'],
-                    [/'/, 'string', '@string'],
-                    [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
-                    [/\d+/, 'number'],
-                    [/[{}()\[\]]/, '@brackets'],
-                    [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
-                    [/[;,.]/, 'delimiter'],
-                    [/:/, 'delimiter'],
-                    [/\/\/.*$/, 'comment'],
-                ],
-                string: [
-                    [/[^\\']+/, 'string'],
-                    [/\\./, 'string.escape'],
-                    [/'/, 'string', '@pop']
-                ],
-            }
-        });
-
-        // 3. AUTOCOMPLETE
-        monaco.languages.registerCompletionItemProvider('kiswahili', {
-            provideCompletionItems: (model, position) => {
-                
-                const suggestions = Object.keys(reserved).map(key => {
-                    const type = reserved[key];
-                    
-                    if (type === 'FUNCTION') {
-                        return {
-                            label: key,
-                            kind: monaco.languages.CompletionItemKind.Function,
-                            insertText: `kazi \${1:jina}:\${2:vipeo}: => {\n\t\${0}\n};`,
-                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                            documentation: getSwahiliDocs(key),
-                            detail: 'Neno msingi kwa ajili ya shughuli'
-                        };
-                    }
-                    
-                    if (type === 'IF') {
-                         return {
-                            label: key,
-                            kind: monaco.languages.CompletionItemKind.Snippet,
-                            insertText: `kama (\${1:hali}) {\n\t\${0}\n} au {\n\t\n};`,
-                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                            documentation: getSwahiliDocs(key),
-                            detail: 'Mlinganyo na Maamuzi'
-                        };
-                    }
-
-                    if (type === 'WHILE') {
-                         return {
-                            label: key,
-                            kind: monaco.languages.CompletionItemKind.Snippet,
-                            insertText: `wakati (\${1:hali}) {\n\t\${0}\n};`,
-                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                            documentation: getSwahiliDocs(key),
-                            detail: 'Mduara wa kujirudia'
-                        };
-                    }
-
-                    if (type === 'FOR') {
-                         return {
-                            label: key,
-                            kind: monaco.languages.CompletionItemKind.Snippet,
-                            insertText: `ikiwa (\${1:anzisha}; \${2:hali}; \${3:badilisha}) {\n\t\${0}\n};`,
-                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                            documentation: getSwahiliDocs(key),
-                            detail: 'Mduara wa hesabu'
-                        };
-                    }
-
-                    return {
-                        label: key,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: key + ' ',
-                        documentation: getSwahiliDocs(key),
-                        detail: 'Neno msingi'
-                    };
-                });
-
-                suggestions.push({
-                    label: '=>',
-                    kind: monaco.languages.CompletionItemKind.Operator,
-                    insertText: '=>',
-                    documentation: getSwahiliDocs('mshale'),
-                    detail: 'Kiashiria cha Mshale'
-                });
-
-                return { suggestions };
-            }
-        });
-
-        // 4. HOVER PROVIDER
-        monaco.languages.registerHoverProvider('kiswahili', {
-            provideHover: function(model, position) {
-                const word = model.getWordAtPosition(position);
-                if (!word) return null;
-                
-                const token = word.word;
-
-                if (reserved[token]) {
-                    return {
-                        contents: [
-                            { value: '**' + token + '**' },
-                            { value: getSwahiliDocs(token) }
-                        ]
-                    };
+    <script>
+        /* ===================== FILE SYSTEM ===================== */
+        const fs = {
+            structure: {
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>My Page</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link rel="stylesheet" href="style.css">\n</head>\n<body class="p-4 bg-dark text-white">\n    <h1 class="display-4">Hello, Bootstrap!</h1>\n    <button class="btn btn-primary" onclick="app.run()">Click Me</button>\n    <script src="script.js"><\/script>\n</body>\n</html>' },
+                'style.css': { type: 'file', content: 'body {\n    transition: background 0.3s;\n}\n.active-bg {\n    background-color: #0056b3 !important;\n}' },
+                'script.js': { type: 'file', content: 'const app = {\n    run: function() {\n        document.body.classList.toggle("active-bg");\n        console.log("Script executed!");\n    }\n};\n\nconsole.log("App loaded");' },
+                'App.jsx': { type: 'file', content: 'function App() {\n  const [count, setCount] = React.useState(0);\n  \n  return (\n    <div className="p-4 bg-secondary text-white rounded shadow">\n      <h1>React Component</h1>\n      <p>Count: {count}</p>\n      <button className="btn btn-success" onClick={() => setCount(c => c + 1)}>Add +</button>\n    </div>\n  );\n}\n\n// Render\nReactDOM.render(<App />, document.getElementById("root"));' },
+                'main.py': { type: 'file', content: 'import math\n\ndef greet(name):\n    return f"Hello, {name}!"\n\nprint(greet("World"))\nprint("Square root of 16 is", math.sqrt(16))' },
+                'database.sql': { type: 'file', content: '-- SQLite Database (MySQL Syntax Compatible)\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, role TEXT);\nINSERT INTO users (name, role) VALUES ("Alice", "Admin");\nINSERT INTO users (name, role) VALUES ("Bob", "User");\nSELECT * FROM users;' }
+            },
+            
+            getNode: function(pathArr) {
+                let current = this.structure;
+                for(let i=0; i<pathArr.length; i++) {
+                    if(!current[pathArr[i]]) return null;
+                    if(i === pathArr.length - 1) return current[pathArr[i]];
+                    current = current[pathArr[i]].children;
                 }
-                return null;
+                return current;
+            },
+            
+            saveFile: function(pathStr, content) {
+                const arr = pathStr.split('/');
+                const name = arr.pop();
+                let parent = this.structure;
+                arr.forEach(p => parent = parent[p].children);
+                parent[name].content = content;
             }
-        });
-
-        // 5. INITIALIZE EDITOR
-        editor = monaco.editor.create(document.getElementById("editor"), {
-            value: `// Andika msimbo wako hapa
-// Jaribu kuandika 'kazi' au 'kama' uone maelezo
-
-kazi salimia:jina: => {
-    andika 'Habari ' + jina;
-};
-
-salimia:'Rafiki':;
-`,
-            language: "kiswahili",
-            theme: "vs-dark",
-            fontSize: 15,
-            automaticLayout: true,
-            minimap: { enabled: true },
-        });
-
-    });
-
-    /* --- SWAHILI DOCUMENTATION LOGIC --- */
-    // This function creates the Swahili tooltips. 
-    // It uses the 'reserved' object keys from your swahili.js
-    
-    function getSwahiliDocs(key) {
-        const docs = {
-            "kazi": 
-                "Hii ni **shughuli (function)**.\n\n" +
-                "Inatumika kuunda msimbo unao weza kuitwa tena na tena. " +
-                "Unaweza kuipa jina na vipeo (parameters).\n\n" +
-                "**Mfano:**\n" +
-                "`kazi jumla:a:b: => { rudisha a + b; };`",
-            
-            "andika": 
-                "Hii ni **amri ya kuonyesha (print)**.\n\n" +
-                "Inatumika kuandika matokeo kwenye skrini.\n\n" +
-                "**Mfano:**\n" +
-                "`andika 'Habari Dunia';`",
-            
-            "rudisha": 
-                "Hii ni **amri ya kurudisha (return)**.\n\n" +
-                "Inatumika ndani ya `kazi` kumaliza shughuli na kutoa jibu.\n\n" +
-                "**Mfano:**\n" +
-                "`rudisha x + y;`",
-            
-            "kama": 
-                "Hii ni **taarifa ya maamuzi (if statement)**.\n\n" +
-                "Inakagua hali fulani. Ikiwa kweli, msimbo unaendelea.\n\n" +
-                "**Mfano:**\n" +
-                "`kama (x > 10) { andika 'Kubwa'; }`",
-            
-            "au": 
-                "Hii inamaanisha **'au' (else/or)**.\n\n" +
-                "Inatumika pamoja na `kama` kama mbadala.\n\n" +
-                "**Mfano:**\n" +
-                "`kama (x > 10) { ... } au { ... };`",
-            
-            "wakati": 
-                "Hii ni **mduara wa wakati (while loop)**.\n\n" +
-                "Msimbo unaendelea kukimbia wakati hali ni kweli.\n\n" +
-                "**Mfano:**\n" +
-                "`wakati (x < 5) { x = x + 1; };`",
-            
-            "ikiwa": 
-                "Hii ni **mduara wa hesabu (for loop)**.\n\n" +
-                "Inatumika kwa hesabu zinazojirudia.\n\n" +
-                "**Mfano:**\n" +
-                "`ikiwa (i=0; i<10; i=i+1) { ... };`",
-            
-            "mshale": 
-                "Hii ni **ishara ya mshale (fat arrow)**.\n\n" +
-                "Inatumika kuanza msimbo wa shughuli.\n\n" +
-                "**Matumizi:** `kazi => { ... };`"
         };
 
-        return docs[key] || "Hakuna maelezo kwa sasa.";
-    }
+        const state = { openTabs: [], activeFile: null };
+        let editor;
+        let sqlDb = null;
 
-    /* --- COMPILER EXECUTION LOGIC --- */
-    
-    function runCompiler() {
-        const code = editor.getValue();
-        const output = document.getElementById("output");
-        output.innerHTML = "";
+        window.onload = () => {
+            // Initialize ACE
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/html");
+            
+            // Enable IntelliSense / Autocomplete
+            ace.require("ace/ext/language_tools");
+            editor.setOptions({
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true,
+                enableSnippets: true
+            });
 
-        try {
-            // Check if Interpreter class exists (from swahili.js)
-            if (typeof Interpreter === "function") {
+            ui.refreshTree();
+        };
+
+        /* ===================== UI MANAGER ===================== */
+        const ui = {
+            refreshTree: function() {
+                const container = document.getElementById('fileTree');
+                container.innerHTML = '';
+                this.renderLevel(fs.structure, container, 0);
+            },
+
+            renderLevel: function(node, container, depth) {
+                const keys = Object.keys(node).sort((a, b) => (node[a].type === 'folder' ? 0 : 1) - (node[b].type === 'folder' ? 0 : 1));
                 
-                // Optional: Clear logs if your JS uses a global log object
-                if (typeof globalLog !== 'undefined' && globalLog.clear) {
-                    globalLog.clear();
+                keys.forEach(name => {
+                    const item = node[name];
+                    const li = document.createElement('li');
+                    const path = this.getPathFromElement(container) + name; 
+                    
+                    if (item.type === 'folder') {
+                        li.innerHTML = `
+                            <div class="tree-item folder" style="padding-left: ${depth * 12}px" data-path="${path}" data-type="folder">
+                                <i class="fas fa-chevron-down folder-chevron"></i>
+                                <i class="fas fa-folder folder-icon"></i>
+                                ${name}
+                            </div>`;
+                        const childUl = document.createElement('ul');
+                        childUl.className = 'tree-children open';
+                        childUl.dataset.parentPath = path + '/';
+                        li.appendChild(childUl);
+                        
+                        // Recursion
+                        this.renderLevel(item.children, childUl, depth + 1);
+                        
+                        // Folder Click Toggle
+                        li.querySelector('.tree-item').onclick = (e) => {
+                            e.stopPropagation();
+                            const icon = li.querySelector('.folder-chevron');
+                            childUl.classList.toggle('open');
+                            icon.style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
+                        };
+                        
+                    } else {
+                        // File
+                        const iconClass = this.getIconClass(name);
+                        li.innerHTML = `
+                            <div class="tree-item file" style="padding-left: ${depth * 12 + 18}px" data-path="${path}" data-type="file">
+                                <i class="${iconClass}"></i>
+                                ${name}
+                            </div>`;
+                        li.querySelector('.tree-item').onclick = (e) => {
+                            e.stopPropagation();
+                            this.openFile(path, name);
+                        };
+                    }
+
+                    // Context Menu Binding
+                    li.querySelector('.tree-item').oncontextmenu = (e) => {
+                        e.preventDefault();
+                        this.showContextMenu(e, path, item.type);
+                    };
+                    container.appendChild(li);
+                });
+            },
+
+            openFile: function(path, name) {
+                if (!state.openTabs.includes(path)) state.openTabs.push(path);
+                state.activeFile = path;
+                
+                // Load Content
+                const node = fs.getNode(path.split('/'));
+                if (node) {
+                    editor.setValue(node.content, -1);
+                    editor.session.setMode(this.getAceMode(name));
+                    this.highlightActive(path);
+                    this.refreshTabs();
                 }
+            },
 
-                // Run the interpreter
-                const interpreter = new Interpreter(code);
+            refreshTabs: function() {
+                const container = document.getElementById('tabsContainer');
+                container.innerHTML = '';
+                state.openTabs.forEach(path => {
+                    const name = path.split('/').pop();
+                    const isActive = path === state.activeFile ? 'active' : '';
+                    const div = document.createElement('div');
+                    div.className = `tab ${isActive}`;
+                    div.innerHTML = `${name} <span class="close" onclick="event.stopPropagation(); ui.closeTab('${path}')">&times;</span>`;
+                    div.onclick = () => this.openFile(path, name);
+                    container.appendChild(div);
+                });
+            },
+
+            closeTab: function(path) {
+                state.openTabs = state.openTabs.filter(p => p !== path);
+                if (state.activeFile === path) {
+                    state.activeFile = state.openTabs[0] || null;
+                    if (state.activeFile) {
+                        const node = fs.getNode(state.activeFile.split('/'));
+                        editor.setValue(node.content, -1);
+                        editor.session.setMode(this.getAceMode(state.activeFile.split('/').pop()));
+                    } else {
+                        editor.setValue('');
+                    }
+                }
+                this.refreshTabs();
+            },
+
+            showPanel: function(type) {
+                document.getElementById('terminalPanel').style.display = type === 'terminal' ? 'block' : 'none';
+                document.getElementById('previewPanel').style.display = type === 'preview' ? 'flex' : 'none';
+                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+                event.target.classList.add('active');
+            },
+
+            // Utils
+            getIconClass(name) {
+                const ext = name.split('.').pop();
+                if (ext === 'html') return 'fab fa-html5 text-warning';
+                if (ext === 'css') return 'fab fa-css3-alt text-info';
+                if (ext === 'js') return 'fab fa-js text-warning';
+                if (ext === 'jsx') return 'fab fa-react react-icon';
+                if (ext === 'py') return 'fab fa-python py-icon';
+                if (ext === 'sql') return 'fas fa-database sql-icon';
+                return 'fas fa-file-code file-icon';
+            },
+            getAceMode(name) {
+                const ext = name.split('.').pop();
+                const modes = { 
+                    html: 'ace/mode/html', 
+                    css: 'ace/mode/css', 
+                    js: 'ace/mode/javascript', 
+                    jsx: 'ace/mode/jsx', 
+                    py: 'ace/mode/python', 
+                    sql: 'ace/mode/sql' 
+                };
+                return modes[ext] || 'ace/mode/text';
+            },
+            highlightActive: function(path) {
+                document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('selected'));
+                const item = document.querySelector(`.tree-item[data-path="${path}"]`);
+                if(item) item.classList.add('selected');
+            },
+            getPathFromElement: function(el) { return el.dataset.parentPath || ''; },
+            
+            showContextMenu: function(e, path, type) {
+                const menu = document.getElementById('contextMenu');
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+                menu.style.display = 'block';
+                menu.dataset.targetPath = path;
+                menu.dataset.targetType = type;
+            },
+            
+            createNewFile: function() {
+                this.modalAction = () => {
+                    const name = document.getElementById('modalInput').value;
+                    if (!name) return;
+                    const path = document.getElementById('contextMenu').dataset.targetPath || '';
+                    let parent = fs.structure;
+                    const type = document.getElementById('contextMenu').dataset.targetType;
+                    
+                    if (type === 'folder' && path) parent = fs.getNode(path.split('/')).children;
+                    else if (path) {
+                        const arr = path.split('/');
+                        arr.pop();
+                        if(arr.length > 0) parent = fs.getNode(arr).children;
+                    }
+                    
+                    parent[name] = { type: 'file', content: '' };
+                    this.refreshTree();
+                    this.closeModal();
+                };
+                this.openModal('New File', 'filename.ext');
+            },
+            createNewFolder: function() {
+                this.modalAction = () => {
+                    const name = document.getElementById('modalInput').value;
+                    if (!name) return;
+                    const path = document.getElementById('contextMenu').dataset.targetPath || '';
+                    let parent = fs.structure;
+                    const type = document.getElementById('contextMenu').dataset.targetType;
+                    
+                    if (type === 'folder' && path) parent = fs.getNode(path.split('/')).children;
+                    else if (path) {
+                        const arr = path.split('/');
+                        arr.pop();
+                        if(arr.length > 0) parent = fs.getNode(arr).children;
+                    }
+                    
+                    parent[name] = { type: 'folder', children: {} };
+                    this.refreshTree();
+                    this.closeModal();
+                };
+                this.openModal('New Folder', 'folder name');
+            },
+            deleteItem: function() {
+                const path = document.getElementById('contextMenu').dataset.targetPath;
+                if (!path) return;
+                if(!confirm(`Delete ${path}?`)) return;
                 
-                // Logic to display output
-                // Adjust this part based on exactly how your swahili.js outputs data
+                const arr = path.split('/');
+                const name = arr.pop();
+                let parent = fs.structure;
+                arr.forEach(p => parent = parent[p].children);
+                delete parent[name];
                 
-                if (typeof globalLog !== 'undefined' && globalLog.values) {
-                    // If using the globalLog pattern from previous examples
-                    let text = '';
-                    globalLog.values.forEach(v => {
-                        if (v.log) text += v.log + '\n';
-                        if (v.error) text += 'KOSA: ' + v.error.message + '\n';
-                    });
-                    output.textContent = text || "(Hakuna matokeo)";
+                if(state.openTabs.includes(path)) this.closeTab(path);
+                this.refreshTree();
+            },
+            renameItem: function() {
+                const oldPath = document.getElementById('contextMenu').dataset.targetPath;
+                const oldArr = oldPath.split('/');
+                const oldName = oldArr.pop();
+                
+                this.modalAction = () => {
+                    const newName = document.getElementById('modalInput').value;
+                    if(!newName) return;
+                    
+                    let parent = fs.structure;
+                    oldArr.forEach(p => parent = parent[p].children);
+                    
+                    parent[newName] = parent[oldName];
+                    delete parent[oldName];
+                    
+                    const newFullPath = oldArr.length > 0 ? oldArr.join('/') + '/' + newName : newName;
+                    const tabIdx = state.openTabs.indexOf(oldPath);
+                    if(tabIdx > -1) state.openTabs[tabIdx] = newFullPath;
+                    if(state.activeFile === oldPath) state.activeFile = newFullPath;
+                    
+                    this.refreshTree();
+                    this.closeModal();
+                };
+                this.openModal('Rename', oldName);
+            },
+
+            openModal: function(title, placeholder) {
+                document.getElementById('modalTitle').innerText = title;
+                document.getElementById('modalInput').placeholder = placeholder;
+                document.getElementById('modalInput').value = '';
+                document.getElementById('inputModal').style.display = 'flex';
+                document.getElementById('contextMenu').style.display = 'none';
+                document.getElementById('modalInput').focus();
+            },
+            closeModal: function() {
+                document.getElementById('inputModal').style.display = 'none';
+            },
+            modalAction: function() { /* Dynamic function */ }
+        };
+
+        document.addEventListener('click', () => { document.getElementById('contextMenu').style.display = 'none'; });
+
+        /* ===================== RUNNER ENGINE ===================== */
+        const runner = {
+            run: async function() {
+                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
+                const path = state.activeFile;
+                if(!path) return;
+                
+                const ext = path.split('.').pop();
+                this.clearTerminal();
+                
+                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
+                else if (ext === 'jsx') this.runReact();
+                else if (ext === 'py') this.runPython();
+                else if (ext === 'sql') await this.runSQL();
+                else this.log("Unsupported file type.");
+            },
+
+            // Web Runner (HTML/CSS/JS)
+            runWeb: function() {
+                let htmlContent = "";
+                // Find index.html in current active or run active if it is html
+                if (path.split('.').pop() === 'html') {
+                    htmlContent = fs.getNode(path.split('/')).content;
                 } else {
-                    // Fallback: Try to capture console.log if your interpreter uses that
-                    let logs = [];
-                    const originalLog = console.log;
-                    console.log = function(...args) { logs.push(args.join(' ')); };
-                    
-                    // Run interpretation here (assuming it runs immediately in constructor or has a run method)
-                    // If Interpreter needs a specific run method, call it: interpreter.run();
-                    
-                    console.log = originalLog;
-                    output.textContent = logs.join('\n') || "(Hakuna matokeo)";
+                    // Try to look for index.html in project root (simple heuristic)
+                    if (fs.structure['index.html']) htmlContent = fs.structure['index.html'].content;
+                    else { this.log("No index.html found to run."); return; }
                 }
 
-            } else {
-                output.innerHTML = "<span style='color:#f44747;'>KOSA: Darasa la 'Interpreter' halijapatikana.</span>\n<span style='color:#888;'>Hakikisha faili la swahili.js limefungwa vizuri.</span>";
-            }
-        } catch (e) {
-            output.innerHTML = "<span style='color:#f44747;'>KOSA LA KUKIMBIA: " + e.message + "</span>";
-            console.error(e);
-        }
-    }
+                // Inject CSS & JS dependencies
+                // (Basic injection logic for single-file ease)
+                // For a full project runner, we would need a bundler.
+                // We simply serve the HTML as is, assuming links are correct or using embedded content.
+                
+                document.getElementById('previewPanel').srcdoc = htmlContent;
+                ui.showPanel('preview');
+                this.log("Preview generated.");
+            },
 
-    function clearOutput() {
-        document.getElementById("output").innerHTML = '';
-        if(typeof globalLog !== 'undefined' && globalLog) globalLog.clear();
-    }
-</script>
+            runReact: function() {
+                const code = fs.getNode(state.activeFile.split('/')).content;
+                ui.showPanel('preview');
+                const iframe = document.getElementById('previewPanel');
+                
+                // Construct HTML with React runtime and Babel for JSX
+                const html = `
+                    <div id="root"></div>
+                    <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+                    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+                    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+                    <script type="text/babel">
+                        ${code}
+                    <\/script>
+                `;
+                iframe.srcdoc = html;
+                this.log("React transpiling...");
+            },
+
+            runPython: function() {
+                const code = fs.getNode(state.activeFile.split('/')).content;
+                Sk.configure({
+                    output: (t) => this.log(t),
+                    read: (x) => {
+                        if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                            throw "File not found: '" + x + "'";
+                        return Sk.builtinFiles["files"][x];
+                    },
+                    __future__: Sk.python3
+                });
+                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code, true))
+                    .catch((e) => this.log(e.toString(), true));
+            },
+
+            runSQL: async function() {
+                const code = fs.getNode(state.activeFile.split('/')).content;
+                this.log("Executing SQL...", false, true);
+
+                if (!sqlDb) {
+                    try {
+                        const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` });
+                        sqlDb = new SQL.Database(); // In-memory DB
+                    } catch(e) {
+                        this.log("Failed to load SQL Engine", true);
+                        return;
+                    }
+                }
+
+                try {
+                    const results = sqlDb.exec(code);
+                    if(results.length === 0) {
+                        this.log("Query executed successfully. (No results returned)");
+                    } else {
+                        results.forEach(res => {
+                            // Create Table Output
+                            let html = `<table><thead><tr>`;
+                            res.columns.forEach(c => html += `<th>${c}</th>`);
+                            html += `</tr></thead><tbody>`;
+                            res.values.forEach(row => {
+                                html += `<tr>`;
+                                row.forEach(val => html += `<td>${val}</td>`);
+                                html += `</tr>`;
+                            });
+                            html += `</tbody></table>`;
+                            
+                            const el = document.getElementById('terminalPanel');
+                            const div = document.createElement('div');
+                            div.innerHTML = html;
+                            el.appendChild(div);
+                        });
+                    }
+                } catch(e) {
+                    this.log("SQL Error: " + e.message, true);
+                }
+            },
+
+            log: function(text, isError = false, isInfo = false) {
+                const el = document.getElementById('terminalPanel');
+                const div = document.createElement('div');
+                div.innerText = text;
+                if(isError) div.className = 'err';
+                if(isInfo) div.className = 'info';
+                el.appendChild(div);
+                el.scrollTop = el.scrollHeight;
+            },
+            clearTerminal: function() { 
+                document.getElementById('terminalPanel').innerHTML = ''; 
+                ui.showPanel('terminal'); 
+            }
+        };
+    </script>
 </body>
 </html>
