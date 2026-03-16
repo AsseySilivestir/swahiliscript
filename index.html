@@ -3,12 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pure · run → hide editor</title>
+    <title>pure IDE · errors + autocomplete</title>
     <!-- Bootstrap Icons (lightweight) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- ACE Editor core + autocomplete -->
+    <!-- ACE Editor core + autocomplete + lint tools -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+    <!-- ACE lint extensions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-error_marker.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-html.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-css.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-javascript.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-python.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/worker-javascript.js"></script>
     <!-- Skulpt (python) & SQL.js & Babel for React -->
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
@@ -27,7 +34,7 @@
             color: #e6edf3;
             overflow: hidden;
         }
-        /* title bar – minimal */
+        /* title bar */
         .titlebar {
             background: #161b22;
             padding: 0.4rem 1rem;
@@ -64,14 +71,13 @@
         }
         .titlebar .run-btn:hover { background: #2ea043; }
 
-        /* MAIN LAYOUT – two states: editor-visible / output-only */
+        /* WORKSPACE */
         .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
-            transition: all 0.2s ease;
         }
-        /* SIDEBAR (file tree) – always visible (but can be narrow) */
+        /* file sidebar */
         .file-sidebar {
             width: 240px;
             background: #0d1117;
@@ -79,7 +85,6 @@
             display: flex;
             flex-direction: column;
             font-size: 0.9rem;
-            transition: width 0.2s;
         }
         .sidebar-header {
             padding: 0.8rem 1rem;
@@ -122,7 +127,6 @@
             display: flex;
             flex-direction: column;
             background: #0d1117;
-            transition: opacity 0.15s;
         }
         .tabs-row {
             display: flex;
@@ -155,9 +159,14 @@
             opacity: 0.5;
         }
         .tab .close-tab:hover { opacity: 1; color: #f85149; }
-        #editor { flex: 1; width: 100%; font-size: 14px; }
+        #editor { 
+            flex: 1; 
+            width: 100%; 
+            font-size: 14px;
+            /* ace gutter already shows errors */
+        }
 
-        /* OUTPUT PANEL – takes full space when editor is hidden */
+        /* OUTPUT PANEL */
         .output-panel {
             flex: 1;
             display: flex;
@@ -194,12 +203,17 @@
         }
         .terminal .err { color: #f85149; }
         .terminal .info { color: #7ee227; }
+        .terminal .line-error { 
+            background: rgba(248,81,73,0.1); 
+            border-left: 3px solid #f85149;
+            padding-left: 8px;
+            margin: 4px 0;
+        }
         iframe { width: 100%; height: 100%; background: white; border: none; }
 
-        /* hidden class – toggled by run */
         .hidden { display: none !important; }
 
-        /* context menu (simple) */
+        /* context menu */
         .context-menu {
             position: fixed;
             background: #21262d;
@@ -248,19 +262,27 @@
         }
         .btn-primary { background: #238636; color: white; }
         .btn-primary:hover { background: #2ea043; }
+
+        /* small annotation */
+        .status-line {
+            background: #161b22;
+            padding: 2px 12px;
+            font-size: 0.8rem;
+            color: #8b949e;
+            border-top: 1px solid #30363d;
+        }
+        .status-line i { margin-right: 4px; }
     </style>
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-terminal-plus"></i> pure·ide</div>
+        <div class="brand"><i class="bi bi-bug"></i> pure·ide +lint</div>
         <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
         <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
         <button class="run-btn" id="runButton" onclick="runner.runAndHideEditor()"><i class="bi bi-play-fill"></i> run → replace editor</button>
     </div>
 
-    <!-- WORKSPACE: sidebar + dynamic main area -->
     <div class="workspace">
-        <!-- file tree sidebar -->
         <div class="file-sidebar">
             <div class="sidebar-header">
                 <span>EXPLORER</span>
@@ -269,12 +291,14 @@
             <ul id="fileTree"></ul>
         </div>
 
-        <!-- MAIN CONTAINER (editor + output live here) -->
         <div id="mainDynamicArea" style="flex:1; display: flex;">
-            <!-- EDITOR ZONE (visible by default) -->
+            <!-- EDITOR ZONE -->
             <div id="editorZone" class="editor-zone">
                 <div class="tabs-row" id="tabsContainer"></div>
                 <div id="editor"></div>
+                <div class="status-line" id="lintStatus">
+                    <i class="bi bi-check-circle-fill text-success"></i> no errors
+                </div>
             </div>
             <!-- OUTPUT ZONE (hidden by default) -->
             <div id="outputZone" class="output-panel hidden">
@@ -282,13 +306,12 @@
                     <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
                     <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <div id="terminalPanel" class="terminal">ready · click run → editor hides, output shows</div>
+                <div id="terminalPanel" class="terminal">ready · errors will show with line numbers</div>
                 <iframe id="previewPanel" style="display: none;"></iframe>
             </div>
         </div>
     </div>
 
-    <!-- context menu & modal (same as original but minimal) -->
     <div id="contextMenu" class="context-menu">
         <div class="context-item" onclick="ui.createNewFile()"><i class="bi bi-file-earmark"></i> new file</div>
         <div class="context-item" onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</div>
@@ -310,10 +333,10 @@
         // ---------- VIRTUAL FS ----------
         const fs = {
             structure: {
-                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-                'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; } button { background: #238636; }' },
-                'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");' },
-                'main.py': { type: 'file', content: 'print("hello from python")\nfor i in range(3): print(i)' },
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+                'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; }\nbutton { background: #238636; }\n/* intentional error: missing brace */\n.card { color: red;' },
+                'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");\n// typo below (lint will catch)\nlet x = 42;\nx = y + 5;' },
+                'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\n\ngreet("world")\n# indent error (python will show line)\n  print("bad indent")' },
                 'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
                 'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
                 'lib': { type: 'folder', children: {} }
@@ -338,9 +361,10 @@
 
         // ----- state -----
         const state = {
-            openTabs: ['index.html'],    // default
+            openTabs: ['index.html'],
             activeFile: 'index.html',
-            db: null
+            db: null,
+            annotations: []   // store current editor annotations
         };
 
         let editor;
@@ -352,13 +376,35 @@
             editor.setOptions({
                 enableBasicAutocompletion: true,
                 enableLiveAutocompletion: true,
+                enableSnippets: true,
                 fontSize: '14px'
             });
+
+            // set up lint change tracking
+            editor.session.on('changeAnnotation', function() {
+                const annotations = editor.session.getAnnotations();
+                state.annotations = annotations;
+                updateLintStatus(annotations);
+            });
+
             ui.refreshTree();
-            ui.openFile('index.html', 'index.html');  // load initial
+            ui.openFile('index.html', 'index.html');
         };
 
-        // ----- UI helper object -----
+        function updateLintStatus(ann) {
+            const el = document.getElementById('lintStatus');
+            const errors = ann.filter(a => a.type === 'error');
+            const warnings = ann.filter(a => a.type === 'warning');
+            if (errors.length) {
+                el.innerHTML = `<i class="bi bi-x-circle-fill text-danger"></i> ${errors.length} error(s) · line ${errors[0].row}`;
+            } else if (warnings.length) {
+                el.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-warning"></i> ${warnings.length} warning(s)`;
+            } else {
+                el.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> no errors`;
+            }
+        }
+
+        // ----- UI object (enhanced with error display) -----
         const ui = {
             refreshTree() {
                 const container = document.getElementById('fileTree');
@@ -410,12 +456,18 @@
                 return 'bi bi-file-earmark';
             },
             openFile(path, name) {
+                // show editor, hide output
+                document.getElementById('editorZone').classList.remove('hidden');
+                document.getElementById('outputZone').classList.add('hidden');
+
                 if (!state.openTabs.includes(path)) state.openTabs.push(path);
                 state.activeFile = path;
                 const node = fs.getNode(path.split('/'));
                 if (node) {
                     editor.setValue(node.content, -1);
                     editor.session.setMode(this.aceMode(name));
+                    // force lint refresh
+                    editor.session.clearAnnotations();
                     this.highlightActive(path);
                     this.refreshTabs();
                 }
@@ -540,17 +592,14 @@
             }
         };
 
-        // ----- runner: implements hide editor + show output -----
+        // ----- runner with enhanced error display (line numbers) -----
         const runner = {
             async runAndHideEditor() {
-                // save current file content
                 if (state.activeFile) {
                     fs.saveFile(state.activeFile, editor.getValue());
                 }
-                // hide editor zone, show output zone
                 document.getElementById('editorZone').classList.add('hidden');
                 document.getElementById('outputZone').classList.remove('hidden');
-                // run logic based on active file
                 if (!state.activeFile) {
                     this.log('no file open', false, true);
                     return;
@@ -559,15 +608,27 @@
                 const node = fs.getNode(state.activeFile.split('/'));
                 if (!node) return;
 
-                // clear terminal
                 document.getElementById('terminalPanel').innerHTML = '';
-                ui.switchOutputTab('terminal');   // default to terminal
+                ui.switchOutputTab('terminal');
 
-                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
-                else if (ext === 'jsx') this.runReact();
-                else if (ext === 'py') this.runPython(node.content);
-                else if (ext === 'sql') await this.runSQL(node.content);
-                else this.log('cannot run this file type', true);
+                try {
+                    if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
+                    else if (ext === 'jsx') this.runReact();
+                    else if (ext === 'py') await this.runPython(node.content);
+                    else if (ext === 'sql') await this.runSQL(node.content);
+                    else this.log('cannot run this file type', true);
+                } catch (e) {
+                    this.log(`Runtime error: ${e.message}`, true);
+                }
+
+                // also display any lint errors with line numbers in terminal
+                if (state.annotations.length) {
+                    this.log('--- editor diagnostics ---', false, true);
+                    state.annotations.forEach(a => {
+                        const line = a.row + 1;
+                        this.log(`line ${line}: ${a.type} - ${a.text}`, a.type === 'error');
+                    });
+                }
             },
 
             runWeb() {
@@ -576,7 +637,6 @@
                 const node = fs.getNode(htmlPath.split('/'));
                 if (!node) { this.log('index.html missing', true); return; }
                 let html = node.content;
-                // inject linked css/js (basic)
                 html = html.replace(/<link[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (match, p1) => {
                     const cssNode = fs.getNode(p1.split('/'));
                     return cssNode ? `<style>/* ${p1} */\n${cssNode.content}</style>` : match;
@@ -604,8 +664,27 @@
             },
 
             runPython(code) {
-                Sk.configure({ output: t => this.log(t), read: (x) => { if (Sk.builtinFiles && Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x]; throw 'file not found'; }, __future__: Sk.python3 });
-                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true)).catch(e => this.log(e.toString(), true));
+                return new Promise((resolve, reject) => {
+                    Sk.configure({ 
+                        output: (t) => this.log(t),
+                        read: (x) => { if (Sk.builtinFiles && Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x]; throw 'file not found'; },
+                        __future__: Sk.python3,
+                        python3: true
+                    });
+                    Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true))
+                        .then(resolve)
+                        .catch(err => {
+                            const msg = err.toString();
+                            // extract line number from Skulpt error (simplified)
+                            const lineMatch = msg.match(/line (\d+)/i);
+                            if (lineMatch) {
+                                this.log(`Python error at line ${lineMatch[1]}: ${msg}`, true);
+                            } else {
+                                this.log(`Python error: ${msg}`, true);
+                            }
+                            reject(err);
+                        });
+                });
             },
 
             async runSQL(sql) {
@@ -624,7 +703,15 @@
                             document.getElementById('terminalPanel').innerHTML += table;
                         });
                     }
-                } catch (e) { this.log('sql err: '+e.message, true); }
+                } catch (e) {
+                    // try to extract line number from sql error (simple)
+                    const lineMatch = e.message.match(/near line (\d+)/i);
+                    if (lineMatch) {
+                        this.log(`SQL error at line ${lineMatch[1]}: ${e.message}`, true);
+                    } else {
+                        this.log('sql err: '+e.message, true);
+                    }
+                }
             },
 
             log(msg, isErr, isInfo) {
@@ -633,23 +720,14 @@
                 d.innerText = msg;
                 if (isErr) d.className = 'err';
                 else if (isInfo) d.className = 'info';
+                // add line-error class if it's a line-specific message (optional)
+                if (msg.includes('line')) d.classList.add('line-error');
                 el.appendChild(d);
                 el.scrollTop = el.scrollHeight;
             }
         };
 
-        // run button also toggles if output is already visible? (we want editor hidden after run)
-        // but we also need a way to get editor back: clicking a file in tree will unhide editor
-        // override openFile to reveal editor when a file is clicked
-        const originalOpen = ui.openFile;
-        ui.openFile = function(path, name) {
-            // show editor, hide output
-            document.getElementById('editorZone').classList.remove('hidden');
-            document.getElementById('outputZone').classList.add('hidden');
-            originalOpen.call(this, path, name);
-        };
-        // also refreshTree binds items to ui.openFile, so it's automatically fixed
-
+        // click outside closes context menu
         document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
     </script>
 </body>
