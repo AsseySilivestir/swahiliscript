@@ -3,601 +3,654 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minja- IDE</title>
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- ACE Editor Core & Autocomplete -->
+    <title>pure · run → hide editor</title>
+    <!-- Bootstrap Icons (lightweight) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- ACE Editor core + autocomplete -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
-    
-    <!-- Language Runtimes -->
+    <!-- Skulpt (python) & SQL.js & Babel for React -->
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-
     <style>
-        :root {
-            --bg-dark: #1e1e1e;
-            --bg-sidebar: #252526;
-            --bg-titlebar: #323233;
-            --bg-statusbar: #007acc;
-            --border-color: #3c3c3c;
-            --text-main: #cccccc;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d1117;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #e6edf3;
+            overflow: hidden;
         }
-        body { margin: 0; background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* Title Bar */
-        .titlebar { height: 35px; background: var(--bg-titlebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--border-color); z-index: 10; }
-        .toolbar-btn { background: none; border: none; color: #ccc; padding: 5px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-        .toolbar-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .toolbar-btn.primary { background: #0066cc; color: white; border-radius: 3px; padding: 4px 10px; }
-        
-        /* Main Layout */
-        .main-container { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .sidebar-header { padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #bbb; display: flex; justify-content: space-between; align-items: center; }
-        .sidebar-actions i { padding: 5px; cursor: pointer; opacity: 0.7; }
-        .sidebar-actions i:hover { opacity: 1; }
-        
-        /* File Tree */
-        .file-tree { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; user-select: none; font-size: 13px; }
-        .tree-item { display: flex; align-items: center; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
-        .tree-item:hover { background: rgba(255,255,255,0.05); }
-        .tree-item.selected { background: #094771; color: white; }
-        .tree-item i { width: 16px; margin-right: 6px; text-align: center; }
-        .folder-icon { color: #dcb67a; }
-        .file-icon { color: #519aba; }
-        .react-icon { color: #61dafb; }
-        .sql-icon { color: #f29111; }
-        .py-icon { color: #3572A5; }
-        .tree-children { display: none; }
+        /* title bar – minimal */
+        .titlebar {
+            background: #161b22;
+            padding: 0.4rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            border-bottom: 1px solid #30363d;
+            font-size: 0.9rem;
+        }
+        .titlebar .brand {
+            font-weight: 600;
+            color: #f0f6fc;
+            letter-spacing: 0.3px;
+        }
+        .titlebar .brand i { color: #2f81f7; margin-right: 6px; }
+        .titlebar button {
+            background: transparent;
+            border: none;
+            color: #e6edf3;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.3rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: 0.1s;
+            cursor: pointer;
+        }
+        .titlebar button:hover { background: #30363d; }
+        .titlebar .run-btn {
+            background: #238636;
+            color: white;
+            margin-left: auto;
+        }
+        .titlebar .run-btn:hover { background: #2ea043; }
+
+        /* MAIN LAYOUT – two states: editor-visible / output-only */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        /* SIDEBAR (file tree) – always visible (but can be narrow) */
+        .file-sidebar {
+            width: 240px;
+            background: #0d1117;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9rem;
+            transition: width 0.2s;
+        }
+        .sidebar-header {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #30363d;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #7d8590;
+        }
+        .sidebar-header i { cursor: pointer; padding: 4px; border-radius: 4px; }
+        .sidebar-header i:hover { background: #30363d; color: white; }
+        #fileTree {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0.5rem 0;
+        }
+        .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px 4px 16px;
+            cursor: pointer;
+            border-radius: 0 6px 6px 0;
+            margin-right: 4px;
+            white-space: nowrap;
+        }
+        .tree-item:hover { background: #30363d; }
+        .tree-item.selected { background: #1f6feb; color: white; }
+        .tree-item i { width: 18px; font-size: 0.95rem; color: #8b949e; }
+        .tree-item.selected i { color: white; }
+        .folder-chevron { font-size: 0.7rem; margin-right: 2px; }
+        .tree-children { display: none; padding-left: 1.2rem; }
         .tree-children.open { display: block; }
-        .folder-chevron { font-size: 10px; width: 16px; margin-right: 2px; transition: transform 0.1s; }
 
-        /* Editor Area */
-        .editor-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
-        .tabs-container { height: 35px; display: flex; background: var(--bg-dark); align-items: flex-end; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
-        .tab { background: var(--bg-titlebar); padding: 5px 15px; border-right: 1px solid var(--border-color); cursor: pointer; font-size: 13px; color: #aaa; display: flex; align-items: center; min-width: 100px; }
-        .tab.active { background: var(--bg-dark); color: #fff; border-top: 1px solid var(--bg-statusbar); margin-bottom: -1px; }
-        .tab .close { margin-left: auto; opacity: 0; padding-left: 10px; font-size: 12px; }
-        .tab:hover .close { opacity: 0.7; }
-        #editor { flex: 1; width: 100%; font-size: 15px; }
+        /* EDITOR ZONE */
+        .editor-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+            transition: opacity 0.15s;
+        }
+        .tabs-row {
+            display: flex;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            overflow-x: auto;
+            height: 36px;
+        }
+        .tab {
+            background: #21262d;
+            color: #b1bac4;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            border-right: 1px solid #30363d;
+            cursor: pointer;
+            min-width: 100px;
+            max-width: 140px;
+        }
+        .tab.active {
+            background: #0d1117;
+            color: #f0f6fc;
+            border-bottom: 2px solid #1f6feb;
+        }
+        .tab .close-tab {
+            margin-left: auto;
+            font-size: 1.1rem;
+            opacity: 0.5;
+        }
+        .tab .close-tab:hover { opacity: 1; color: #f85149; }
+        #editor { flex: 1; width: 100%; font-size: 14px; }
 
-        /* Bottom Panel */
-        .bottom-panel { height: 220px; background: #1e1e1e; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .panel-header { display: flex; background: var(--bg-titlebar); padding: 0 10px; font-size: 12px; }
-        .panel-tab { padding: 5px 10px; color: #888; cursor: pointer; border-bottom: 1px solid transparent; }
-        .panel-tab.active { color: #fff; border-bottom-color: var(--bg-statusbar); }
-        .terminal { flex: 1; background: #000; color: #0f0; font-family: 'Consolas', monospace; padding: 10px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
-        .terminal .err { color: #f48771; }
-        .terminal .info { color: #6a9955; }
-        .terminal table { border-collapse: collapse; margin-top: 5px; color: #ddd; }
-        .terminal th, .terminal td { border: 1px solid #555; padding: 2px 8px; font-size: 12px; }
-        .terminal th { background: #333; color: #fff; }
-        
-        /* Modals */
-        .modal-bg { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-box { background: var(--bg-sidebar); padding: 20px; width: 400px; border-radius: 5px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
-        .modal-input { width: 100%; padding: 8px; margin: 10px 0; background: #3c3c3c; border: 1px solid #555; color: white; }
-        
-        /* Context Menu */
-        .context-menu { position: absolute; background: #252526; border: 1px solid #454545; padding: 5px 0; min-width: 150px; z-index: 1000; display: none; }
-        .context-item { padding: 5px 15px; cursor: pointer; font-size: 13px; }
-        .context-item:hover { background: #094771; color: white; }
+        /* OUTPUT PANEL – takes full space when editor is hidden */
+        .output-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+        }
+        .output-header {
+            background: #161b22;
+            padding: 0.3rem 1rem;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+        }
+        .output-header span { 
+            cursor: pointer; 
+            padding: 4px 0; 
+            color: #8b949e;
+            border-bottom: 2px solid transparent;
+        }
+        .output-header .active-tab {
+            color: #f0f6fc;
+            border-bottom: 2px solid #1f6feb;
+        }
+        .terminal {
+            flex: 1;
+            background: #0d1117;
+            color: #e6edf3;
+            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+            padding: 1rem;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+        .terminal .err { color: #f85149; }
+        .terminal .info { color: #7ee227; }
+        iframe { width: 100%; height: 100%; background: white; border: none; }
+
+        /* hidden class – toggled by run */
+        .hidden { display: none !important; }
+
+        /* context menu (simple) */
+        .context-menu {
+            position: fixed;
+            background: #21262d;
+            border: 1px solid #454c54;
+            border-radius: 6px;
+            padding: 0.3rem 0;
+            display: none;
+            z-index: 1000;
+        }
+        .context-item {
+            padding: 0.4rem 1.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .context-item:hover { background: #1f6feb; color: white; }
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            place-items: center;
+            z-index: 2000;
+        }
+        .modal {
+            background: #161b22;
+            padding: 1.5rem;
+            border-radius: 8px;
+            width: 360px;
+            border: 1px solid #3d444d;
+        }
+        .modal input {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #3d444d;
+            padding: 0.6rem;
+            color: white;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+        .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        .modal-actions button {
+            padding: 0.4rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary { background: #238636; color: white; }
+        .btn-primary:hover { background: #2ea043; }
     </style>
 </head>
 <body>
-
     <div class="titlebar">
-        <b style="color:white; margin-right:20px; display:flex; align-items:center;"><i class="fas fa-code" style="margin-right:10px; color:#007acc;"></i>Minja -IDE</b>
-        <button class="toolbar-btn" onclick="ui.createNewFile()"><i class="fas fa-file"></i> New File</button>
-        <button class="toolbar-btn" onclick="ui.createNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</button>
-        <div style="flex:1"></div>
-        <button class="toolbar-btn primary" onclick="runner.run()"><i class="fas fa-play"></i> Run</button>
+        <div class="brand"><i class="bi bi-terminal-plus"></i> pure·ide</div>
+        <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
+        <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
+        <button class="run-btn" id="runButton" onclick="runner.runAndHideEditor()"><i class="bi bi-play-fill"></i> run → replace editor</button>
     </div>
 
-    <div class="main-container">
-        <div class="sidebar">
+    <!-- WORKSPACE: sidebar + dynamic main area -->
+    <div class="workspace">
+        <!-- file tree sidebar -->
+        <div class="file-sidebar">
             <div class="sidebar-header">
-                <span>Explorer</span>
-                <div class="sidebar-actions">
-                    <i class="fas fa-sync-alt" onclick="ui.refreshTree()" title="Refresh"></i>
-                    <i class="fas fa-plus" onclick="ui.createNewFile()" title="New File"></i>
-                </div>
+                <span>EXPLORER</span>
+                <i class="bi bi-arrow-repeat" onclick="ui.refreshTree()"></i>
             </div>
-            <ul class="file-tree" id="fileTree"></ul>
+            <ul id="fileTree"></ul>
         </div>
 
-        <div class="editor-area">
-            <div class="tabs-container" id="tabsContainer"></div>
-            <div id="editor"></div>
-            
-            <div class="bottom-panel">
-                <div class="panel-header">
-                    <div class="panel-tab active" onclick="ui.showPanel('terminal')">Terminal / Output</div>
-                    <div class="panel-tab" onclick="ui.showPanel('preview')">Web Preview</div>
+        <!-- MAIN CONTAINER (editor + output live here) -->
+        <div id="mainDynamicArea" style="flex:1; display: flex;">
+            <!-- EDITOR ZONE (visible by default) -->
+            <div id="editorZone" class="editor-zone">
+                <div class="tabs-row" id="tabsContainer"></div>
+                <div id="editor"></div>
+            </div>
+            <!-- OUTPUT ZONE (hidden by default) -->
+            <div id="outputZone" class="output-panel hidden">
+                <div class="output-header">
+                    <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
+                    <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <div id="terminalPanel" class="terminal">Ready. Use 'Run' to execute code.</div>
-                <iframe id="previewPanel" style="display:none; flex:1; background:white; border:none;"></iframe>
+                <div id="terminalPanel" class="terminal">ready · click run → editor hides, output shows</div>
+                <iframe id="previewPanel" style="display: none;"></iframe>
             </div>
         </div>
     </div>
 
-    <!-- Context Menu -->
+    <!-- context menu & modal (same as original but minimal) -->
     <div id="contextMenu" class="context-menu">
-        <div class="context-item" onclick="ui.createNewFile()"><i class="fas fa-file"></i> New File</div>
-        <div class="context-item" onclick="ui.createNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</div>
-        <div class="context-item" onclick="ui.renameItem()"><i class="fas fa-pencil-alt"></i> Rename</div>
-        <div class="context-item" style="color:#f48771;" onclick="ui.deleteItem()"><i class="fas fa-trash"></i> Delete</div>
+        <div class="context-item" onclick="ui.createNewFile()"><i class="bi bi-file-earmark"></i> new file</div>
+        <div class="context-item" onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</div>
+        <div class="context-item" onclick="ui.renameItem()"><i class="bi bi-pencil"></i> rename</div>
+        <div class="context-item" style="color:#f85149;" onclick="ui.deleteItem()"><i class="bi bi-trash3"></i> delete</div>
     </div>
-
-    <!-- Input Modal -->
     <div class="modal-bg" id="inputModal">
-        <div class="modal-box">
-            <h5 id="modalTitle" class="text-light">Input</h5>
-            <input type="text" id="modalInput" class="modal-input" placeholder="Enter name...">
-            <div style="text-align:right; margin-top:10px;">
-                <button class="btn btn-sm btn-secondary" onclick="ui.closeModal()">Cancel</button>
-                <button class="btn btn-sm btn-primary" onclick="ui.modalAction()">OK</button>
+        <div class="modal">
+            <h5 id="modalTitle">New file</h5>
+            <input type="text" id="modalInput" placeholder="name.ext">
+            <div class="modal-actions">
+                <button onclick="ui.closeModal()">cancel</button>
+                <button class="btn-primary" onclick="ui.modalConfirm()">ok</button>
             </div>
         </div>
     </div>
 
     <script>
-        /* ===================== FILE SYSTEM ===================== */
+        // ---------- VIRTUAL FS ----------
         const fs = {
             structure: {
-                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>My Page</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link rel="stylesheet" href="style.css">\n</head>\n<body class="p-4 bg-dark text-white">\n    <h1 class="display-4">Hello, Bootstrap!</h1>\n    <p id="demo-text">This text will change.</p>\n    <button class="btn btn-primary" onclick="app.run()">Click Me</button>\n    <script src="script.js"><\/script>\n</body>\n</html>' },
-                'style.css': { type: 'file', content: 'body {\n    transition: background 0.3s;\n}\n.active-bg {\n    background-color: #0056b3 !important;\n}\n#demo-text {\n    color: #17a2b8;\n    font-weight: bold;\n}' },
-                'script.js': { type: 'file', content: 'const app = {\n    run: function() {\n        document.body.classList.toggle("active-bg");\n        document.getElementById("demo-text").innerText = "Updated via JS!";\n        console.log("Script executed!");\n    }\n};\n\nconsole.log("App loaded");' },
-                'App.jsx': { type: 'file', content: 'function App() {\n  const [count, setCount] = React.useState(0);\n  \n  return (\n    <div className="p-4 bg-secondary text-white rounded shadow">\n      <h1>React Component</h1>\n      <p>Count: {count}</p>\n      <button className="btn btn-success" onClick={() => setCount(c => c + 1)}>Add +</button>\n    </div>\n  );\n}\n\n// Render\nReactDOM.render(<App />, document.getElementById("root"));' },
-                'main.py': { type: 'file', content: 'import math\n\ndef greet(name):\n    return f"Hello, {name}!"\n\nprint(greet("World"))\nprint("Square root of 16 is", math.sqrt(16))' },
-                'database.sql': { type: 'file', content: '-- SQLite Database (MySQL Syntax Compatible)\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, role TEXT);\nINSERT INTO users (name, role) VALUES ("Alice", "Admin");\nINSERT INTO users (name, role) VALUES ("Bob", "User");\nSELECT * FROM users;' }
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+                'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; } button { background: #238636; }' },
+                'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");' },
+                'main.py': { type: 'file', content: 'print("hello from python")\nfor i in range(3): print(i)' },
+                'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
+                'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
+                'lib': { type: 'folder', children: {} }
             },
-            
-            getNode: function(pathArr) {
-                let current = this.structure;
-                for(let i=0; i<pathArr.length; i++) {
-                    if(!current[pathArr[i]]) return null;
-                    if(i === pathArr.length - 1) return current[pathArr[i]];
-                    current = current[pathArr[i]].children;
+            getNode(pathArr) {
+                let cur = this.structure;
+                for (let i = 0; i < pathArr.length; i++) {
+                    if (!cur[pathArr[i]]) return null;
+                    if (i === pathArr.length - 1) return cur[pathArr[i]];
+                    cur = cur[pathArr[i]].children;
                 }
-                return current;
+                return cur;
             },
-            
-            saveFile: function(pathStr, content) {
-                const arr = pathStr.split('/');
-                const name = arr.pop();
+            saveFile(pathStr, content) {
+                const parts = pathStr.split('/');
+                const name = parts.pop();
                 let parent = this.structure;
-                arr.forEach(p => parent = parent[p].children);
-                parent[name].content = content;
+                parts.forEach(p => parent = parent[p].children);
+                if (parent[name]) parent[name].content = content;
             }
         };
 
-        const state = { openTabs: [], activeFile: null };
-        let editor;
-        let sqlDb = null;
+        // ----- state -----
+        const state = {
+            openTabs: ['index.html'],    // default
+            activeFile: 'index.html',
+            db: null
+        };
 
+        let editor;
         window.onload = () => {
-            // Initialize ACE
-            editor = ace.edit("editor");
-            editor.setTheme("ace/theme/monokai");
-            editor.session.setMode("ace/mode/html");
-            
-            // Enable IntelliSense / Autocomplete
-            ace.require("ace/ext/language_tools");
+            editor = ace.edit('editor');
+            editor.setTheme('ace/theme/tomorrow_night');
+            editor.session.setMode('ace/mode/html');
+            ace.require('ace/ext/language_tools');
             editor.setOptions({
                 enableBasicAutocompletion: true,
                 enableLiveAutocompletion: true,
-                enableSnippets: true
+                fontSize: '14px'
             });
-
             ui.refreshTree();
+            ui.openFile('index.html', 'index.html');  // load initial
         };
 
-        /* ===================== UI MANAGER ===================== */
+        // ----- UI helper object -----
         const ui = {
-            refreshTree: function() {
+            refreshTree() {
                 const container = document.getElementById('fileTree');
                 container.innerHTML = '';
-                this.renderLevel(fs.structure, container, 0);
+                this.renderLevel(fs.structure, container, '');
             },
-
-            renderLevel: function(node, container, depth) {
-                const keys = Object.keys(node).sort((a, b) => (node[a].type === 'folder' ? 0 : 1) - (node[b].type === 'folder' ? 0 : 1));
-                
-                keys.forEach(name => {
+            renderLevel(node, parentEl, pathPrefix) {
+                Object.keys(node).sort((a,b) => {
+                    if (node[a].type !== node[b].type) return node[a].type === 'folder' ? -1 : 1;
+                    return a.localeCompare(b);
+                }).forEach(name => {
                     const item = node[name];
+                    const fullPath = pathPrefix ? pathPrefix + '/' + name : name;
                     const li = document.createElement('li');
-                    const path = this.getPathFromElement(container) + name; 
-                    
                     if (item.type === 'folder') {
-                        li.innerHTML = `
-                            <div class="tree-item folder" style="padding-left: ${depth * 12}px" data-path="${path}" data-type="folder">
-                                <i class="fas fa-chevron-down folder-chevron"></i>
-                                <i class="fas fa-folder folder-icon"></i>
-                                ${name}
-                            </div>`;
-                        const childUl = document.createElement('ul');
-                        childUl.className = 'tree-children open';
-                        childUl.dataset.parentPath = path + '/';
-                        li.appendChild(childUl);
-                        
-                        this.renderLevel(item.children, childUl, depth + 1);
-                        
-                        li.querySelector('.tree-item').onclick = (e) => {
+                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="folder" style="padding-left: ${pathPrefix.split('/').filter(Boolean).length * 14}px">
+                            <i class="bi bi-chevron-down folder-chevron"></i>
+                            <i class="bi bi-folder-fill" style="color:#7d8590;"></i> ${name}
+                        </div><ul class="tree-children open" data-parent="${fullPath}"></ul>`;
+                        const childUl = li.querySelector('ul');
+                        this.renderLevel(item.children, childUl, fullPath);
+                        const div = li.querySelector('.tree-item');
+                        div.onclick = (e) => {
                             e.stopPropagation();
-                            const icon = li.querySelector('.folder-chevron');
+                            const chev = div.querySelector('.bi-chevron-down');
                             childUl.classList.toggle('open');
-                            icon.style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
+                            chev.style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
                         };
-                        
                     } else {
-                        const iconClass = this.getIconClass(name);
-                        li.innerHTML = `
-                            <div class="tree-item file" style="padding-left: ${depth * 12 + 18}px" data-path="${path}" data-type="file">
-                                <i class="${iconClass}"></i>
-                                ${name}
-                            </div>`;
-                        li.querySelector('.tree-item').onclick = (e) => {
-                            e.stopPropagation();
-                            this.openFile(path, name);
-                        };
+                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="file" style="padding-left: ${pathPrefix.split('/').filter(Boolean).length * 14 + 20}px">
+                            <i class="${this.iconFor(name)}"></i> ${name}
+                        </div>`;
+                        li.querySelector('.tree-item').onclick = () => this.openFile(fullPath, name);
                     }
-
                     li.querySelector('.tree-item').oncontextmenu = (e) => {
                         e.preventDefault();
-                        this.showContextMenu(e, path, item.type);
+                        this.showContextMenu(e, fullPath, item.type);
                     };
-                    container.appendChild(li);
+                    parentEl.appendChild(li);
                 });
             },
-
-            openFile: function(path, name) {
+            iconFor(name) {
+                if (name.endsWith('.html')) return 'bi bi-filetype-html';
+                if (name.endsWith('.css')) return 'bi bi-filetype-css';
+                if (name.endsWith('.js')) return 'bi bi-filetype-js';
+                if (name.endsWith('.jsx')) return 'bi bi-filetype-jsx';
+                if (name.endsWith('.py')) return 'bi bi-filetype-py';
+                if (name.endsWith('.sql')) return 'bi bi-database';
+                return 'bi bi-file-earmark';
+            },
+            openFile(path, name) {
                 if (!state.openTabs.includes(path)) state.openTabs.push(path);
                 state.activeFile = path;
-                
                 const node = fs.getNode(path.split('/'));
                 if (node) {
                     editor.setValue(node.content, -1);
-                    editor.session.setMode(this.getAceMode(name));
+                    editor.session.setMode(this.aceMode(name));
                     this.highlightActive(path);
                     this.refreshTabs();
                 }
             },
-
-            refreshTabs: function() {
-                const container = document.getElementById('tabsContainer');
-                container.innerHTML = '';
-                state.openTabs.forEach(path => {
-                    const name = path.split('/').pop();
-                    const isActive = path === state.activeFile ? 'active' : '';
-                    const div = document.createElement('div');
-                    div.className = `tab ${isActive}`;
-                    div.innerHTML = `${name} <span class="close" onclick="event.stopPropagation(); ui.closeTab('${path}')">&times;</span>`;
-                    div.onclick = () => this.openFile(path, name);
-                    container.appendChild(div);
+            aceMode(name) {
+                const ext = name.split('.').pop();
+                return { html:'ace/mode/html', css:'ace/mode/css', js:'ace/mode/javascript', jsx:'ace/mode/jsx', py:'ace/mode/python', sql:'ace/mode/sql' }[ext] || 'ace/mode/text';
+            },
+            refreshTabs() {
+                const cont = document.getElementById('tabsContainer');
+                cont.innerHTML = '';
+                state.openTabs.forEach(p => {
+                    const name = p.split('/').pop();
+                    const active = p === state.activeFile ? 'active' : '';
+                    const tab = document.createElement('div');
+                    tab.className = `tab ${active}`;
+                    tab.innerHTML = `${name} <span class="close-tab" onclick="event.stopPropagation(); ui.closeTab('${p}')">&times;</span>`;
+                    tab.onclick = () => this.openFile(p, name);
+                    cont.appendChild(tab);
                 });
             },
-
-            closeTab: function(path) {
+            closeTab(path) {
                 state.openTabs = state.openTabs.filter(p => p !== path);
                 if (state.activeFile === path) {
                     state.activeFile = state.openTabs[0] || null;
                     if (state.activeFile) {
                         const node = fs.getNode(state.activeFile.split('/'));
                         editor.setValue(node.content, -1);
-                        editor.session.setMode(this.getAceMode(state.activeFile.split('/').pop()));
-                    } else {
-                        editor.setValue('');
-                    }
+                    } else editor.setValue('');
                 }
                 this.refreshTabs();
             },
-
-            showPanel: function(type) {
-                document.getElementById('terminalPanel').style.display = type === 'terminal' ? 'block' : 'none';
-                document.getElementById('previewPanel').style.display = type === 'preview' ? 'flex' : 'none';
-                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
-                event.target.classList.add('active');
+            highlightActive(path) {
+                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
+                const sel = document.querySelector(`.tree-item[data-path="${path}"]`);
+                if (sel) sel.classList.add('selected');
             },
-
-            getIconClass(name) {
-                const ext = name.split('.').pop();
-                if (ext === 'html') return 'fab fa-html5 text-warning';
-                if (ext === 'css') return 'fab fa-css3-alt text-info';
-                if (ext === 'js') return 'fab fa-js text-warning';
-                if (ext === 'jsx') return 'fab fa-react react-icon';
-                if (ext === 'py') return 'fab fa-python py-icon';
-                if (ext === 'sql') return 'fas fa-database sql-icon';
-                return 'fas fa-file-code file-icon';
-            },
-            getAceMode(name) {
-                const ext = name.split('.').pop();
-                const modes = { 
-                    html: 'ace/mode/html', 
-                    css: 'ace/mode/css', 
-                    js: 'ace/mode/javascript', 
-                    jsx: 'ace/mode/jsx', 
-                    py: 'ace/mode/python', 
-                    sql: 'ace/mode/sql' 
-                };
-                return modes[ext] || 'ace/mode/text';
-            },
-            highlightActive: function(path) {
-                document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('selected'));
-                const item = document.querySelector(`.tree-item[data-path="${path}"]`);
-                if(item) item.classList.add('selected');
-            },
-            getPathFromElement: function(el) { return el.dataset.parentPath || ''; },
-            
-            showContextMenu: function(e, path, type) {
+            showContextMenu(e, path, type) {
                 const menu = document.getElementById('contextMenu');
                 menu.style.left = e.pageX + 'px';
                 menu.style.top = e.pageY + 'px';
                 menu.style.display = 'block';
-                menu.dataset.targetPath = path;
-                menu.dataset.targetType = type;
+                menu.dataset.path = path;
+                menu.dataset.type = type;
             },
-            
-            createNewFile: function() {
-                this.modalAction = () => {
-                    const name = document.getElementById('modalInput').value;
-                    if (!name) return;
-                    const path = document.getElementById('contextMenu').dataset.targetPath || '';
-                    let parent = fs.structure;
-                    const type = document.getElementById('contextMenu').dataset.targetType;
-                    
-                    if (type === 'folder' && path) parent = fs.getNode(path.split('/')).children;
-                    else if (path) {
-                        const arr = path.split('/');
-                        arr.pop();
-                        if(arr.length > 0) parent = fs.getNode(arr).children;
-                    }
-                    
-                    parent[name] = { type: 'file', content: '' };
-                    this.refreshTree();
-                    this.closeModal();
-                };
-                this.openModal('New File', 'filename.ext');
+            createNewFile() { this.modalPurpose = 'file'; this.openModal('new file', 'filename.ext'); },
+            createNewFolder() { this.modalPurpose = 'folder'; this.openModal('new folder', 'folder name'); },
+            renameItem() {
+                this.modalPurpose = 'rename';
+                const oldPath = document.getElementById('contextMenu').dataset.path;
+                if (!oldPath) return;
+                this.renameOldPath = oldPath;
+                this.openModal('rename', oldPath.split('/').pop());
             },
-            createNewFolder: function() {
-                this.modalAction = () => {
-                    const name = document.getElementById('modalInput').value;
-                    if (!name) return;
-                    const path = document.getElementById('contextMenu').dataset.targetPath || '';
-                    let parent = fs.structure;
-                    const type = document.getElementById('contextMenu').dataset.targetType;
-                    
-                    if (type === 'folder' && path) parent = fs.getNode(path.split('/')).children;
-                    else if (path) {
-                        const arr = path.split('/');
-                        arr.pop();
-                        if(arr.length > 0) parent = fs.getNode(arr).children;
-                    }
-                    
-                    parent[name] = { type: 'folder', children: {} };
-                    this.refreshTree();
-                    this.closeModal();
-                };
-                this.openModal('New Folder', 'folder name');
-            },
-            deleteItem: function() {
-                const path = document.getElementById('contextMenu').dataset.targetPath;
-                if (!path) return;
-                if(!confirm(`Delete ${path}?`)) return;
-                
-                const arr = path.split('/');
-                const name = arr.pop();
+            deleteItem() {
+                const path = document.getElementById('contextMenu').dataset.path;
+                if (!path || !confirm(`delete ${path}?`)) return;
+                const parts = path.split('/');
+                const name = parts.pop();
                 let parent = fs.structure;
-                arr.forEach(p => parent = parent[p].children);
+                parts.forEach(p => parent = parent[p].children);
                 delete parent[name];
-                
-                if(state.openTabs.includes(path)) this.closeTab(path);
+                if (state.openTabs.includes(path)) this.closeTab(path);
                 this.refreshTree();
             },
-            renameItem: function() {
-                const oldPath = document.getElementById('contextMenu').dataset.targetPath;
-                const oldArr = oldPath.split('/');
-                const oldName = oldArr.pop();
-                
-                this.modalAction = () => {
-                    const newName = document.getElementById('modalInput').value;
-                    if(!newName) return;
-                    
-                    let parent = fs.structure;
-                    oldArr.forEach(p => parent = parent[p].children);
-                    
-                    parent[newName] = parent[oldName];
-                    delete parent[oldName];
-                    
-                    const newFullPath = oldArr.length > 0 ? oldArr.join('/') + '/' + newName : newName;
-                    const tabIdx = state.openTabs.indexOf(oldPath);
-                    if(tabIdx > -1) state.openTabs[tabIdx] = newFullPath;
-                    if(state.activeFile === oldPath) state.activeFile = newFullPath;
-                    
-                    this.refreshTree();
-                    this.closeModal();
-                };
-                this.openModal('Rename', oldName);
-            },
+            modalConfirm() {
+                const val = document.getElementById('modalInput').value.trim();
+                if (!val) return;
+                const ctxPath = document.getElementById('contextMenu').dataset.path;
+                const ctxType = document.getElementById('contextMenu').dataset.type;
 
-            openModal: function(title, placeholder) {
+                if (this.modalPurpose === 'file' || this.modalPurpose === 'folder') {
+                    let target = fs.structure;
+                    if (ctxPath) {
+                        if (ctxType === 'folder') target = fs.getNode(ctxPath.split('/')).children;
+                        else {
+                            const p = ctxPath.split('/');
+                            p.pop();
+                            if (p.length) target = fs.getNode(p).children;
+                        }
+                    }
+                    target[val] = this.modalPurpose === 'file' ? { type:'file', content:'' } : { type:'folder', children:{} };
+                } else if (this.modalPurpose === 'rename') {
+                    const old = this.renameOldPath;
+                    const parts = old.split('/');
+                    const oldName = parts.pop();
+                    let parent = fs.structure;
+                    parts.forEach(p => parent = parent[p].children);
+                    parent[val] = parent[oldName];
+                    delete parent[oldName];
+                    const newPath = parts.concat([val]).join('/');
+                    if (state.openTabs.includes(old)) {
+                        state.openTabs = state.openTabs.map(p => p === old ? newPath : p);
+                        if (state.activeFile === old) state.activeFile = newPath;
+                    }
+                }
+                this.refreshTree();
+                this.closeModal();
+            },
+            openModal(title, placeholder) {
                 document.getElementById('modalTitle').innerText = title;
                 document.getElementById('modalInput').placeholder = placeholder;
                 document.getElementById('modalInput').value = '';
                 document.getElementById('inputModal').style.display = 'flex';
                 document.getElementById('contextMenu').style.display = 'none';
-                document.getElementById('modalInput').focus();
             },
-            closeModal: function() {
-                document.getElementById('inputModal').style.display = 'none';
-            },
-            modalAction: function() { /* Dynamic function */ }
+            closeModal() { document.getElementById('inputModal').style.display = 'none'; },
+            switchOutputTab(tab) {
+                const term = document.getElementById('terminalPanel');
+                const prev = document.getElementById('previewPanel');
+                if (tab === 'terminal') {
+                    term.style.display = 'block';
+                    prev.style.display = 'none';
+                    document.getElementById('terminalTabBtn').classList.add('active-tab');
+                    document.getElementById('previewTabBtn').classList.remove('active-tab');
+                } else {
+                    term.style.display = 'none';
+                    prev.style.display = 'flex';
+                    document.getElementById('previewTabBtn').classList.add('active-tab');
+                    document.getElementById('terminalTabBtn').classList.remove('active-tab');
+                }
+            }
         };
 
-        document.addEventListener('click', () => { document.getElementById('contextMenu').style.display = 'none'; });
-
-        /* ===================== RUNNER ENGINE ===================== */
+        // ----- runner: implements hide editor + show output -----
         const runner = {
-            run: async function() {
-                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
-                const path = state.activeFile; 
-                if(!path) return;
-                
-                const ext = path.split('.').pop();
-                this.clearTerminal();
-                
-                // FIX: Pass 'path' to functions that need it
-                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb(path);
-                else if (ext === 'jsx') this.runReact(path);
-                else if (ext === 'py') this.runPython(path);
-                else if (ext === 'sql') await this.runSQL();
-                else this.log("Unsupported file type.");
-            },
-
-            // Smart Web Runner
-            runWeb: function(activePath) {
-                let targetHtmlPath = activePath;
-                const ext = activePath.split('.').pop();
-
-                // If running CSS or JS, try to find index.html to inject it into
-                if (ext !== 'html') {
-                    if (fs.structure['index.html']) {
-                        targetHtmlPath = 'index.html';
-                        this.log(`Running index.html (Entry point for ${ext})`, false, true);
-                    } else {
-                        this.log(`Error: No index.html found to run linked ${ext} file.`, true);
-                        return;
-                    }
+            async runAndHideEditor() {
+                // save current file content
+                if (state.activeFile) {
+                    fs.saveFile(state.activeFile, editor.getValue());
                 }
+                // hide editor zone, show output zone
+                document.getElementById('editorZone').classList.add('hidden');
+                document.getElementById('outputZone').classList.remove('hidden');
+                // run logic based on active file
+                if (!state.activeFile) {
+                    this.log('no file open', false, true);
+                    return;
+                }
+                const ext = state.activeFile.split('.').pop();
+                const node = fs.getNode(state.activeFile.split('/'));
+                if (!node) return;
 
-                const node = fs.getNode(targetHtmlPath.split('/'));
-                if (!node) { this.log("File not found: " + targetHtmlPath, true); return; }
+                // clear terminal
+                document.getElementById('terminalPanel').innerHTML = '';
+                ui.switchOutputTab('terminal');   // default to terminal
 
-                let htmlContent = node.content;
-
-                // --- SMART BUNDLER ---
-                // Automatically inject content of linked local files (simulates server behavior)
-                
-                // 1. Inject CSS
-                htmlContent = htmlContent.replace(/<link\s+[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (match, p1) => {
-                    const fileNode = fs.getNode(p1.split('/'));
-                    if (fileNode && fileNode.content) {
-                        return `<style>/* Source: ${p1} */\n${fileNode.content}</style>`;
-                    }
-                    return match; // Keep original if file not found in virtual FS
-                });
-
-                // 2. Inject JS
-                htmlContent = htmlContent.replace(/<script\s+[^>]*src=["']([\w\.\/]+\.js)["'][^>]*>\s*<\/script>/gi, (match, p1) => {
-                    const fileNode = fs.getNode(p1.split('/'));
-                    if (fileNode && fileNode.content) {
-                        return `<script>/* Source: ${p1} */\n${fileNode.content}<\/script>`;
-                    }
-                    return match;
-                });
-
-                document.getElementById('previewPanel').srcdoc = htmlContent;
-                ui.showPanel('preview');
-                this.log("Preview generated.");
+                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
+                else if (ext === 'jsx') this.runReact();
+                else if (ext === 'py') this.runPython(node.content);
+                else if (ext === 'sql') await this.runSQL(node.content);
+                else this.log('cannot run this file type', true);
             },
 
-            runReact: function(path) {
-                const code = fs.getNode(path.split('/')).content;
-                ui.showPanel('preview');
-                const iframe = document.getElementById('previewPanel');
-                
-                const html = `
+            runWeb() {
+                let htmlPath = state.activeFile;
+                if (!htmlPath.endsWith('.html')) htmlPath = 'index.html';
+                const node = fs.getNode(htmlPath.split('/'));
+                if (!node) { this.log('index.html missing', true); return; }
+                let html = node.content;
+                // inject linked css/js (basic)
+                html = html.replace(/<link[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (match, p1) => {
+                    const cssNode = fs.getNode(p1.split('/'));
+                    return cssNode ? `<style>/* ${p1} */\n${cssNode.content}</style>` : match;
+                });
+                html = html.replace(/<script[^>]*src=["']([\w\.\/]+\.js)["'][^>]*><\/script>/gi, (match, p1) => {
+                    const jsNode = fs.getNode(p1.split('/'));
+                    return jsNode ? `<script>/* ${p1} */\n${jsNode.content}<\/script>` : match;
+                });
+                document.getElementById('previewPanel').srcdoc = html;
+                ui.switchOutputTab('preview');
+            },
+
+            runReact() {
+                const node = fs.getNode(state.activeFile.split('/'));
+                const jsx = node.content;
+                const doc = `
                     <div id="root"></div>
                     <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
                     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
                     <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-                    <script type="text/babel">
-                        ${code}
-                    <\/script>
+                    <script type="text/babel">${jsx}<\/script>
                 `;
-                iframe.srcdoc = html;
-                this.log("React transpiling...");
+                document.getElementById('previewPanel').srcdoc = doc;
+                ui.switchOutputTab('preview');
             },
 
-            runPython: function(path) {
-                const code = fs.getNode(path.split('/')).content;
-                Sk.configure({
-                    output: (t) => this.log(t),
-                    read: (x) => {
-                        if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-                            throw "File not found: '" + x + "'";
-                        return Sk.builtinFiles["files"][x];
-                    },
-                    __future__: Sk.python3
-                });
-                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code, true))
-                    .catch((e) => this.log(e.toString(), true));
+            runPython(code) {
+                Sk.configure({ output: t => this.log(t), read: (x) => { if (Sk.builtinFiles && Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x]; throw 'file not found'; }, __future__: Sk.python3 });
+                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true)).catch(e => this.log(e.toString(), true));
             },
 
-            runSQL: async function() {
-                const code = editor.getValue(); // Get current content directly
-                this.log("Executing SQL...", false, true);
-
-                if (!sqlDb) {
-                    try {
-                        const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` });
-                        sqlDb = new SQL.Database(); 
-                    } catch(e) {
-                        this.log("Failed to load SQL Engine", true);
-                        return;
-                    }
+            async runSQL(sql) {
+                if (!state.db) {
+                    const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` });
+                    state.db = new SQL.Database();
                 }
-
                 try {
-                    const results = sqlDb.exec(code);
-                    if(results.length === 0) {
-                        this.log("Query executed successfully. (No results returned)");
-                    } else {
-                        results.forEach(res => {
-                            let html = `<table><thead><tr>`;
-                            res.columns.forEach(c => html += `<th>${c}</th>`);
-                            html += `</tr></thead><tbody>`;
-                            res.values.forEach(row => {
-                                html += `<tr>`;
-                                row.forEach(val => html += `<td>${val}</td>`);
-                                html += `</tr>`;
-                            });
-                            html += `</tbody></table>`;
-                            
-                            const el = document.getElementById('terminalPanel');
-                            const div = document.createElement('div');
-                            div.innerHTML = html;
-                            el.appendChild(div);
+                    const res = state.db.exec(sql);
+                    if (!res.length) this.log('done (no rows)', false, true);
+                    else {
+                        res.forEach(r => {
+                            let table = '<table border="1" style="border-collapse:collapse; margin:4px 0"><tr>' + r.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+                            r.values.forEach(v => table += '<tr>' + v.map(d => `<td>${d}</td>`).join('') + '</tr>');
+                            table += '</table>';
+                            document.getElementById('terminalPanel').innerHTML += table;
                         });
                     }
-                } catch(e) {
-                    this.log("SQL Error: " + e.message, true);
-                }
+                } catch (e) { this.log('sql err: '+e.message, true); }
             },
 
-            log: function(text, isError = false, isInfo = false) {
+            log(msg, isErr, isInfo) {
                 const el = document.getElementById('terminalPanel');
-                const div = document.createElement('div');
-                div.innerText = text;
-                if(isError) div.className = 'err';
-                if(isInfo) div.className = 'info';
-                el.appendChild(div);
+                const d = document.createElement('div');
+                d.innerText = msg;
+                if (isErr) d.className = 'err';
+                else if (isInfo) d.className = 'info';
+                el.appendChild(d);
                 el.scrollTop = el.scrollHeight;
-            },
-            clearTerminal: function() { 
-                document.getElementById('terminalPanel').innerHTML = ''; 
-                ui.showPanel('terminal'); 
             }
         };
+
+        // run button also toggles if output is already visible? (we want editor hidden after run)
+        // but we also need a way to get editor back: clicking a file in tree will unhide editor
+        // override openFile to reveal editor when a file is clicked
+        const originalOpen = ui.openFile;
+        ui.openFile = function(path, name) {
+            // show editor, hide output
+            document.getElementById('editorZone').classList.remove('hidden');
+            document.getElementById('outputZone').classList.add('hidden');
+            originalOpen.call(this, path, name);
+        };
+        // also refreshTree binds items to ui.openFile, so it's automatically fixed
+
+        document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
     </script>
 </body>
 </html>
-
