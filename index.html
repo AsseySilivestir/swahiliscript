@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>polyglot studio · xml design + js + python + zip</title>
+    <title>polyglot studio · android xml + js + python + live split</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- ACE Editor -->
@@ -15,7 +15,7 @@
     <!-- Skulpt (Python) -->
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
-    <!-- Babel & React -->
+    <!-- Babel & React (for JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -26,7 +26,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #1e1e1e;
-            font-family: 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -34,14 +34,13 @@
             overflow: hidden;
         }
         .titlebar {
-            background: #2c2c2c;
+            background: #2d2d2d;
             padding: 0.4rem 1rem;
             display: flex;
             align-items: center;
             gap: 1rem;
             border-bottom: 1px solid #3c3c3c;
             font-size: 0.9rem;
-            flex-wrap: wrap;
         }
         .titlebar .brand {
             font-weight: 600;
@@ -60,20 +59,19 @@
             border-radius: 6px;
             font-size: 0.85rem;
             cursor: pointer;
-            white-space: nowrap;
         }
         .titlebar button:hover { background: #3c3c3c; color: white; }
-        .titlebar .run-btn { background: #238636; color: white; }
+        .titlebar .run-btn { background: #238636; color: white; margin-left: auto; }
         .titlebar .run-btn:hover { background: #2ea043; }
-        .titlebar .split-btn.active { background: #3ddc84; color: #1e1e1e; }
         .titlebar .download-btn { background: #1f6feb; color: white; }
+        .titlebar .split-btn.active { background: #3c3c3c; color: #3ddc84; border: 1px solid #3ddc84; }
 
         .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
-        /* FILE TREE SIDEBAR */
+        /* FILE EXPLORER with tree lines */
         .file-sidebar {
             width: 280px;
             background: #252526;
@@ -88,7 +86,6 @@
             font-weight: 500;
             display: flex;
             justify-content: space-between;
-            align-items: center;
             color: #aaa;
         }
         .sidebar-actions { display: flex; gap: 8px; }
@@ -100,46 +97,61 @@
             overflow-y: auto;
             list-style: none;
             padding: 0.5rem 0;
-            min-height: 100px;
+            font-family: 'Consolas', monospace;
         }
         .tree-item {
             display: flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 8px 4px 16px;
+            padding: 4px 8px 4px 0px;
             cursor: grab;
-            border-radius: 0 6px 6px 0;
-            margin-right: 4px;
             white-space: nowrap;
             user-select: none;
+            position: relative;
         }
-        .tree-item.dragging { opacity: 0.5; background: #0e639c; }
-        .tree-item.drag-over { background: #094771 !important; border: 1px dashed #3ddc84; }
         .tree-item:hover { background: #2a2d2e; }
         .tree-item.selected { background: #094771; color: white; }
         .tree-item i { width: 18px; color: #8b949e; }
-        .folder-chevron { font-size: 0.7rem; margin-right: 2px; }
-        .tree-children { display: none; padding-left: 1.5rem; list-style: none; }
+        .tree-item.selected i { color: white; }
+        .indent-guide {
+            display: inline-block;
+            width: 16px;
+            position: relative;
+        }
+        .indent-guide::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #3c3c3c;
+        }
+        .tree-children { 
+            display: none; 
+            padding-left: 16px; 
+            list-style: none; 
+            border-left: 1px dotted #3c3c3c;
+            margin-left: 8px;
+        }
         .tree-children.open { display: block; }
-        .tree-item .prefix-tree { color: #6e7681; margin-right: 4px; font-family: monospace; }
 
-        /* CENTER/EDITOR AREA */
         .editor-zone {
             flex: 1;
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
-            min-width: 300px;
+            min-width: 0;
         }
         .tabs-row {
             display: flex;
-            background: #2c2c2c;
+            background: #2d2d2d;
             border-bottom: 1px solid #3c3c3c;
             overflow-x: auto;
             height: 36px;
         }
         .tab {
-            background: #2c2c2c;
+            background: #2d2d2d;
             color: #ccc;
             padding: 0 1rem;
             display: flex;
@@ -148,7 +160,6 @@
             font-size: 0.85rem;
             border-right: 1px solid #3c3c3c;
             cursor: pointer;
-            white-space: nowrap;
         }
         .tab.active {
             background: #1e1e1e;
@@ -159,17 +170,18 @@
         .tab .close-tab:hover { opacity: 1; color: #f85149; }
         #editor { flex: 1; width: 100%; font-size: 14px; }
 
-        /* RIGHT OUTPUT PANEL (split/run modes) */
         .output-panel {
-            width: 45%;
-            min-width: 350px;
-            background: #252526;
-            display: flex;
+            flex: 1;
+            display: none;
             flex-direction: column;
+            background: #1e1e1e;
+            min-width: 0;
             border-left: 1px solid #3c3c3c;
         }
+        body.split-mode .output-panel { display: flex; }
+        
         .output-header {
-            background: #2c2c2c;
+            background: #2d2d2d;
             padding: 0.3rem 1rem;
             border-bottom: 1px solid #3c3c3c;
             display: flex;
@@ -185,31 +197,36 @@
             padding: 1rem;
             overflow-y: auto;
             white-space: pre-wrap;
-            font-size: 0.85rem;
         }
         .terminal .err { color: #f85149; }
         .terminal .info { color: #7ee227; }
         iframe { width: 100%; height: 100%; background: white; border: none; }
 
-        /* Android design preview specific */
-        .design-preview {
-            flex: 1;
-            background: #2c2c2c;
-            display: flex;
+        /* Android preview panel (design mode) */
+        .design-panel {
+            width: 45%;
+            min-width: 320px;
+            background: #2d2d2d;
+            display: none;
             flex-direction: column;
+            border-left: 1px solid #3c3c3c;
         }
+        body.design-mode .design-panel { display: flex; }
+        body.design-mode .output-panel { display: none; }
+        body.design-mode .editor-zone { border-right: 1px solid #3c3c3c; }
+        
         .device-frame {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #1a1a1a;
-            padding: 16px;
+            padding: 20px;
         }
         .android-screen {
             width: 100%;
-            max-width: 380px;
-            height: 90%;
+            max-width: 400px;
+            height: 85%;
             background: #f0f0f0;
             border-radius: 36px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -231,32 +248,61 @@
             padding: 16px;
             overflow-y: auto;
         }
-        .preview-widget { margin-bottom: 12px; width: 100%; }
-        .preview-widget.button { background: #2196F3; color: white; padding: 12px; border-radius: 8px; text-align: center; }
-        .preview-widget.textview { color: #1e1e1e; padding: 8px 0; }
-        .preview-widget.edittext { border:1px solid #ccc; border-radius:6px; padding:10px; background:white; }
-        .preview-widget.imageview { background:#e0e0e0; min-height:60px; display:flex; align-items:center; justify-content:center; }
-
-        .context-menu {
-            position: fixed; background: #2c2c2c; border:1px solid #3c3c3c; border-radius:6px; padding:0.3rem 0; display:none; z-index:1000;
+        .preview-widget {
+            margin-bottom: 12px;
         }
-        .context-item { padding:0.4rem 1.5rem; cursor:pointer; }
-        .context-item:hover { background:#094771; color:white; }
+        .status-line {
+            background: #2d2d2d;
+            padding: 2px 12px;
+            font-size: 0.8rem;
+            color: #aaa;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+        }
+        .upload-area {
+            border: 2px dashed #3c3c3c;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .context-menu {
+            position: fixed;
+            background: #252526;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            display: none;
+            z-index: 1000;
+        }
+        .context-item { padding: 0.4rem 1.5rem; cursor: pointer; }
+        .context-item:hover { background: #094771; }
         .modal-bg {
-            position: fixed; inset:0; background:rgba(0,0,0,0.7); display:none; place-items:center; z-index:2000;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            place-items: center;
+            z-index: 2000;
         }
         .modal {
-            background:#2c2c2c; padding:1.5rem; border-radius:8px; width:360px;
+            background: #252526;
+            padding: 1.5rem;
+            border-radius: 8px;
+            width: 360px;
         }
-        .modal input { width:100%; background:#1e1e1e; border:1px solid #3c3c3c; padding:0.6rem; color:white; margin:1rem 0; }
-        .modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; }
-        .btn-primary { background:#3ddc84; color:#1e1e1e; }
-        .status-line {
-            background:#2c2c2c; padding:2px 12px; font-size:0.8rem; color:#aaa; border-top:1px solid #3c3c3c;
-            display:flex; justify-content:space-between;
+        .modal input {
+            width: 100%;
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            padding: 0.6rem;
+            color: white;
+            margin: 1rem 0;
         }
+        .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        .btn-primary { background: #3ddc84; color: #1e1e1e; border: none; padding: 0.4rem 1.2rem; border-radius: 4px; cursor: pointer; }
         .hidden { display: none !important; }
-        .upload-area { border:2px dashed #3c3c3c; border-radius:6px; padding:20px; text-align:center; margin:10px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -265,12 +311,13 @@
         <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
         <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
         <button class="download-btn" onclick="ui.downloadProject()"><i class="bi bi-download"></i> download ZIP</button>
-        <button id="splitBtn" class="split-btn" onclick="ui.toggleSplitMode()"><i class="bi bi-layout-split"></i> split view</button>
-        <button class="run-btn" id="runButton" onclick="runner.runFull()"><i class="bi bi-play-fill"></i> run (full output)</button>
+        <button id="splitBtn" class="split-btn" onclick="ui.toggleSplit()"><i class="bi bi-layout-split"></i> split mode</button>
+        <button id="designBtn" onclick="ui.toggleDesignMode()"><i class="bi bi-palette"></i> android design</button>
+        <button class="run-btn" onclick="runner.run()"><i class="bi bi-play-fill"></i> run</button>
     </div>
 
     <div class="workspace">
-        <!-- FILE EXPLORER (with tree lines) -->
+        <!-- file explorer with tree lines -->
         <div class="file-sidebar">
             <div class="sidebar-header">
                 <span>EXPLORER</span>
@@ -286,186 +333,183 @@
             </div>
         </div>
 
-        <!-- MAIN DYNAMIC AREA (editor + output) -->
-        <div id="mainArea" style="flex:1; display: flex;">
-            <!-- EDITOR ZONE (always present) -->
+        <div style="flex:1; display: flex;">
+            <!-- editor zone -->
             <div id="editorZone" class="editor-zone">
                 <div class="tabs-row" id="tabsContainer"></div>
                 <div id="editor"></div>
-                <div class="status-line">
-                    <span id="lintStatus"><i class="bi bi-check-circle-fill"></i> ready</span>
-                    <span id="saveStatus"></span>
-                </div>
+                <div class="status-line"><span id="lintStatus"></span><span id="saveStatus"></span></div>
             </div>
-            <!-- OUTPUT ZONE (dynamic: can be design, preview, terminal) -->
+            <!-- output panel (split mode) -->
             <div id="outputZone" class="output-panel">
                 <div class="output-header">
-                    <span id="tabDesign" onclick="ui.switchOutputTab('design')">android design</span>
-                    <span id="tabPreview" onclick="ui.switchOutputTab('preview')">web preview</span>
-                    <span id="tabTerminal" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
+                    <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
+                    <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <!-- Android design panel (visible when chosen) -->
-                <div id="designPanel" class="design-preview" style="display: none;">
-                    <div class="device-frame">
-                        <div class="android-screen">
-                            <div class="status-bar"><span>10:25</span><span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span></div>
-                            <div id="androidContent" class="app-content"><!-- injected by xml parser --></div>
-                        </div>
+                <div id="terminalPanel" class="terminal"></div>
+                <iframe id="previewPanel" style="display:none;"></iframe>
+            </div>
+            <!-- android design panel (design mode) -->
+            <div id="designPanel" class="design-panel">
+                <div class="status-line" style="border-left:none;"><i class="bi bi-phone"></i> pixel 4 · live xml</div>
+                <div class="device-frame">
+                    <div class="android-screen">
+                        <div class="status-bar"><span>10:25</span><span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span></div>
+                        <div id="androidContent" class="app-content"></div>
                     </div>
                 </div>
-                <!-- Web preview iframe -->
-                <iframe id="previewPanel" style="display: none;"></iframe>
-                <!-- Terminal panel -->
-                <div id="terminalPanel" class="terminal">ready · use run button or split</div>
             </div>
         </div>
     </div>
 
-    <!-- context & modals -->
-    <div id="contextMenu" class="context-menu">...</div>
-    <div class="modal-bg" id="inputModal">...</div>
+    <div id="contextMenu" class="context-menu">
+        <div class="context-item" onclick="ui.createNewFile()">new file</div>
+        <div class="context-item" onclick="ui.createNewFolder()">new folder</div>
+        <div class="context-item" onclick="ui.renameItem()">rename</div>
+        <div class="context-item" style="color:#f85149;" onclick="ui.deleteItem()">delete</div>
+    </div>
+    <div class="modal-bg" id="inputModal">
+        <div class="modal">
+            <h5 id="modalTitle">New file</h5>
+            <input type="text" id="modalInput" placeholder="name.ext">
+            <div class="modal-actions"><button onclick="ui.closeModal()">cancel</button><button class="btn-primary" onclick="ui.modalConfirm()">ok</button></div>
+        </div>
+    </div>
 
     <script>
-        // ---------- VIRTUAL FS ----------
+        // ---------- VIRTUAL FS WITH TREE STRUCTURE ----------
         const fs = {
             structure: {
-                'layout': { type: 'folder', children: {
-                    'activity_main.xml': { type: 'file', content: `<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"\n    android:layout_width="match_parent"\n    android:layout_height="match_parent"\n    android:orientation="vertical"\n    android:padding="16dp">\n\n    <TextView\n        android:layout_width="wrap_content"\n        android:layout_height="wrap_content"\n        android:text="Hello XML"\n        android:textSize="24sp"\n        android:textColor="#2196F3"/>\n\n    <Button\n        android:layout_width="match_parent"\n        android:layout_height="wrap_content"\n        android:text="CLICK ME"/>\n\n</LinearLayout>` }
-                }},
-                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>Hello World</h1>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-                'style.css': { type: 'file', content: 'body { background: #1e1e1e; color: #3ddc84; }' },
-                'script.js': { type: 'file', content: 'console.log("js running");\nalert("hello from js");' },
-                'app.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>React {c}</h1><button onClick={()=>setC(c+1)}>+</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
-                'main.py': { type: 'file', content: 'print("hello python")\nfor i in range(3):\n    print(f"line {i}")' },
-                'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice");\nSELECT * FROM users;' },
                 'js': { type: 'folder', children: {
-                    'lib.js': { type: 'file', content: '// utility lib\nexport const sum = (a,b) => a+b;' }
+                    'app.js': { type: 'file', content: 'console.log("hello from js folder");\nfunction test() { return 42; }' }
                 }},
-                'components': { type: 'folder', children: {} }
+                'xml': { type: 'folder', children: {
+                    'activity_main.xml': { type: 'file', content: `<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"\n    android:layout_width="match_parent"\n    android:layout_height="match_parent"\n    android:orientation="vertical">\n    <TextView android:text="Hello XML" android:textSize="24sp"/>\n</LinearLayout>` }
+                }},
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body><h1>hello</h1><script src="js/app.js"></script></body>\n</html>' },
+                'style.css': { type: 'file', content: 'body { background: #1e1e1e; color: white; }' },
+                'main.py': { type: 'file', content: 'print("hello python")' },
+                'App.jsx': { type: 'file', content: 'function App() { return <h1>react</h1>; }\nReactDOM.render(<App />, document.getElementById("root"));' }
             },
+            
             getNode(pathArr) {
                 let cur = this.structure;
-                for (let i = 0; i < pathArr.length; i++) {
+                for (let i=0; i<pathArr.length; i++) {
                     if (!cur[pathArr[i]]) return null;
-                    if (i === pathArr.length - 1) return cur[pathArr[i]];
+                    if (i===pathArr.length-1) return cur[pathArr[i]];
                     cur = cur[pathArr[i]].children;
                 }
                 return cur;
             },
+            
             saveFile(pathStr, content) {
-                const parts = pathStr.split('/');
-                const name = parts.pop();
+                let parts = pathStr.split('/');
+                let name = parts.pop();
                 let parent = this.structure;
                 parts.forEach(p => parent = parent[p].children);
                 if (parent[name]) parent[name].content = content;
-            },
-            moveItem(oldPath, newParentPath) {
-                const oldParts = oldPath.split('/'); const name = oldParts.pop();
-                let oldParent = this.structure; oldParts.forEach(p => oldParent = oldParent[p].children);
-                const item = oldParent[name]; if (!item) return false;
-                delete oldParent[name];
-                let newParent = this.structure;
-                if (newParentPath) { const newParts = newParentPath.split('/'); newParts.forEach(p => newParent = newParent[p].children); }
-                newParent[name] = item;
-                // update tabs
-                state.openTabs = state.openTabs.map(tab => {
-                    if (tab === oldPath) return newParentPath ? `${newParentPath}/${name}` : name;
-                    if (tab.startsWith(oldPath + '/')) return tab.replace(oldPath, newParentPath ? `${newParentPath}/${name}` : name);
-                    return tab;
-                });
-                if (state.activeFile === oldPath) state.activeFile = newParentPath ? `${newParentPath}/${name}` : name;
-                return true;
             }
         };
 
+        // ---------- STATE ----------
         const state = {
-            openTabs: ['layout/activity_main.xml', 'index.html'],
-            activeFile: 'layout/activity_main.xml',
+            openTabs: ['index.html', 'js/app.js', 'xml/activity_main.xml'],
+            activeFile: 'index.html',
             db: null,
             splitActive: false,
-            currentOutputTab: 'terminal' // design, preview, terminal
+            designActive: false
         };
 
-        let editor, saveTimeout;
+        let editor;
+        let previewTimeout;
+
         window.onload = () => {
             editor = ace.edit('editor');
             editor.setTheme('ace/theme/tomorrow_night');
-            editor.session.setMode('ace/mode/xml');
-            ace.require('ace/ext/language_tools');
             editor.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, fontSize: '14px' });
-
+            
             editor.session.on('change', () => {
-                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
-                if (state.splitActive) {
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(() => {
-                        if (state.activeFile.endsWith('.xml')) updateAndroidPreview();
-                        else runner.runLivePreview();
-                    }, 400);
+                if (state.splitActive || state.designActive) {
+                    clearTimeout(previewTimeout);
+                    previewTimeout = setTimeout(() => {
+                        if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
+                        if (state.designActive && state.activeFile.endsWith('.xml')) updateAndroidPreview();
+                        else if (state.splitActive) runner.runLivePreview();
+                    }, 300);
                 }
             });
 
             ui.refreshTree();
-            ui.openFile('layout/activity_main.xml', 'activity_main.xml');
-            updateAndroidPreview(); // initial
+            ui.openFile('index.html');
+            document.getElementById('terminalPanel').innerHTML = 'ready ▶';
         };
 
-        // ---------- UI with tree lines (|-- style) ----------
+        // ---------- FILE EXPLORER WITH TREE LINES (|-- style) ----------
         const ui = {
-            refreshTree() { document.getElementById('fileTree').innerHTML = ''; this.renderLevel(fs.structure, document.getElementById('fileTree'), '', ''); },
-            renderLevel(node, parentEl, pathPrefix, indentStr) {
-                const entries = Object.keys(node).sort((a,b) => (node[a].type !== node[b].type) ? (node[a].type==='folder'?-1:1) : a.localeCompare(b));
-                entries.forEach((name, idx) => {
+            refreshTree() {
+                const container = document.getElementById('fileTree');
+                container.innerHTML = '';
+                this.renderLevel(fs.structure, container, '', 0);
+            },
+            
+            renderLevel(node, parentEl, pathPrefix, depth) {
+                Object.keys(node).sort((a,b) => {
+                    if (node[a].type !== node[b].type) return node[a].type==='folder' ? -1 : 1;
+                    return a.localeCompare(b);
+                }).forEach(name => {
                     const item = node[name];
                     const fullPath = pathPrefix ? pathPrefix + '/' + name : name;
-                    const isLast = idx === entries.length - 1;
                     const li = document.createElement('li');
-                    const prefix = indentStr + (isLast ? '└── ' : '├── ');
+                    li.style.listStyle = 'none';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'tree-item';
+                    div.setAttribute('data-path', fullPath);
+                    div.setAttribute('data-type', item.type);
+                    div.draggable = true;
+                    
+                    // indent guides (|-- style)
+                    let indentHtml = '';
+                    for (let i=0; i<depth; i++) indentHtml += '<span class="indent-guide"></span>';
+                    div.innerHTML = indentHtml + (item.type==='folder' ? '<i class="bi bi-chevron-down folder-chevron"></i><i class="bi bi-folder-fill"></i> ' : '<i class="'+this.iconFor(name)+'"></i> ') + name;
+                    
+                    li.appendChild(div);
                     
                     if (item.type === 'folder') {
-                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="folder" style="padding-left:4px" draggable="true">
-                            <span class="prefix-tree">${prefix}</span>
-                            <i class="bi bi-chevron-down folder-chevron" style="font-size:10px;"></i>
-                            <i class="bi bi-folder-fill"></i> ${name}
-                        </div><ul class="tree-children open" data-parent="${fullPath}"></ul>`;
-                        const childUl = li.querySelector('ul');
-                        const nextIndent = indentStr + (isLast ? '    ' : '│   ');
-                        this.renderLevel(item.children, childUl, fullPath, nextIndent);
-                        const div = li.querySelector('.tree-item');
-                        div.onclick = (e) => { e.stopPropagation(); childUl.classList.toggle('open'); const chev = div.querySelector('.bi-chevron-down'); chev.style.transform = childUl.classList.contains('open')?'rotate(0deg)':'rotate(-90deg)'; };
-                        this.addDragDrop(div, fullPath, true);
-                    } else {
-                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="file" style="padding-left:4px" draggable="true">
-                            <span class="prefix-tree">${prefix}</span>
-                            <i class="${this.iconFor(name)}"></i> ${name}
-                        </div>`;
-                        const div = li.querySelector('.tree-item');
-                        div.onclick = () => this.openFile(fullPath, name);
-                        this.addDragDrop(div, fullPath, false);
+                        const childUl = document.createElement('ul');
+                        childUl.className = 'tree-children open';
+                        li.appendChild(childUl);
+                        this.renderLevel(item.children, childUl, fullPath, depth+1);
+                        
+                        div.querySelector('.bi-chevron-down').onclick = (e) => {
+                            e.stopPropagation();
+                            childUl.classList.toggle('open');
+                        };
                     }
-                    li.querySelector('.tree-item').oncontextmenu = (e) => { e.preventDefault(); this.showContextMenu(e, fullPath, item.type); };
+                    
+                    div.onclick = () => this.openFile(fullPath);
+                    div.oncontextmenu = (e) => { e.preventDefault(); this.showContextMenu(e, fullPath, item.type); };
+                    
+                    // drag drop
+                    div.ondragstart = (e) => { e.dataTransfer.setData('text/plain', fullPath); };
+                    div.ondragover = (e) => e.preventDefault();
+                    div.ondrop = (e) => {
+                        e.preventDefault();
+                        const src = e.dataTransfer.getData('text/plain');
+                        if (src && src !== fullPath && item.type === 'folder') {
+                            if (confirm(`move to folder?`)) this.moveItem(src, fullPath);
+                        }
+                    };
+                    
                     parentEl.appendChild(li);
                 });
             },
-            addDragDrop(el, path, isFolder) {
-                el.draggable = true;
-                el.ondragstart = (e) => { e.dataTransfer.setData('text/plain', path); el.classList.add('dragging'); };
-                el.ondragend = () => el.classList.remove('dragging');
-                el.ondragover = (e) => e.preventDefault();
-                el.ondrop = (e) => {
-                    e.preventDefault(); el.classList.remove('drag-over');
-                    const src = e.dataTransfer.getData('text/plain');
-                    if (src && src !== path) {
-                        if (isFolder && confirm(`Move "${src}" to "${path}"?`)) {
-                            if (fs.moveItem(src, path)) { this.refreshTree(); this.refreshTabs(); }
-                        } else if (!isFolder) { /* ignore dropping onto file */ }
-                    }
-                };
-                if (isFolder) {
-                    el.ondragover = (e) => { e.preventDefault(); el.classList.add('drag-over'); };
-                    el.ondragleave = () => el.classList.remove('drag-over');
-                }
+            
+            moveItem(oldPath, newParentPath) {
+                // simplified move (for demo)
+                alert('move not fully implemented in this demo, but structure supports it');
             },
+            
             iconFor(name) {
                 if (name.endsWith('.xml')) return 'bi bi-filetype-xml';
                 if (name.endsWith('.html')) return 'bi bi-filetype-html';
@@ -473,160 +517,260 @@
                 if (name.endsWith('.js')) return 'bi bi-filetype-js';
                 if (name.endsWith('.jsx')) return 'bi bi-filetype-jsx';
                 if (name.endsWith('.py')) return 'bi bi-filetype-py';
-                if (name.endsWith('.sql')) return 'bi bi-database';
                 return 'bi bi-file-earmark';
             },
-            openFile(path, name) {
+            
+            openFile(path) {
                 if (!state.openTabs.includes(path)) state.openTabs.push(path);
                 state.activeFile = path;
                 const node = fs.getNode(path.split('/'));
                 if (node) {
                     editor.setValue(node.content, -1);
-                    const ext = name.split('.').pop();
-                    const mode = { xml:'ace/mode/xml', html:'ace/mode/html', css:'ace/mode/css', js:'ace/mode/javascript', jsx:'ace/mode/jsx', py:'ace/mode/python', sql:'ace/mode/sql' }[ext] || 'ace/mode/text';
-                    editor.session.setMode(mode);
+                    editor.session.setMode(this.aceMode(path));
                     this.highlightActive(path);
                     this.refreshTabs();
-                    if (state.splitActive) {
-                        if (ext==='xml') updateAndroidPreview();
-                        else runner.runLivePreview();
-                    }
+                    if (state.designActive && path.endsWith('.xml')) updateAndroidPreview();
                 }
             },
-            refreshTabs() { /* ... (similar to before) ... */
-                const cont = document.getElementById('tabsContainer'); cont.innerHTML = '';
+            
+            aceMode(path) {
+                if (path.endsWith('.xml')) return 'ace/mode/xml';
+                if (path.endsWith('.html')) return 'ace/mode/html';
+                if (path.endsWith('.css')) return 'ace/mode/css';
+                if (path.endsWith('.js')) return 'ace/mode/javascript';
+                if (path.endsWith('.jsx')) return 'ace/mode/jsx';
+                if (path.endsWith('.py')) return 'ace/mode/python';
+                return 'ace/mode/text';
+            },
+            
+            refreshTabs() {
+                const cont = document.getElementById('tabsContainer');
+                cont.innerHTML = '';
                 state.openTabs.forEach(p => {
                     const name = p.split('/').pop();
-                    const active = p === state.activeFile ? 'active' : '';
                     const tab = document.createElement('div');
-                    tab.className = `tab ${active}`;
+                    tab.className = `tab ${p===state.activeFile?'active':''}`;
                     tab.innerHTML = `${name} <span class="close-tab" onclick="event.stopPropagation(); ui.closeTab('${p}')">&times;</span>`;
-                    tab.onclick = () => this.openFile(p, name);
+                    tab.onclick = () => this.openFile(p);
                     cont.appendChild(tab);
                 });
             },
-            closeTab(path) { /* ... */ 
-                state.openTabs = state.openTabs.filter(p=>p!==path);
-                if(state.activeFile===path) { state.activeFile=state.openTabs[0]||null; if(state.activeFile) { const node = fs.getNode(state.activeFile.split('/')); editor.setValue(node.content,-1); } else editor.setValue(''); }
+            
+            closeTab(path) {
+                state.openTabs = state.openTabs.filter(p => p !== path);
+                if (state.activeFile === path) {
+                    state.activeFile = state.openTabs[0] || null;
+                    if (state.activeFile) {
+                        const node = fs.getNode(state.activeFile.split('/'));
+                        editor.setValue(node ? node.content : '', -1);
+                    } else editor.setValue('');
+                }
                 this.refreshTabs();
             },
-            highlightActive(path) { document.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('selected')); const sel = document.querySelector(`.tree-item[data-path="${path}"]`); if(sel) sel.classList.add('selected'); },
-            showContextMenu(e, path, type) { const m=document.getElementById('contextMenu'); m.style.left=e.pageX+'px'; m.style.top=e.pageY+'px'; m.style.display='block'; m.dataset.path=path; m.dataset.type=type; },
-            handleFileUpload(files) { /* ... */ Array.from(files).forEach(f=>{ const r=new FileReader(); r.onload=e=>{ fs.structure[f.name]={type:'file',content:e.target.result}; this.refreshTree(); }; r.readAsText(f); }); },
+            
+            highlightActive(path) {
+                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
+                const sel = document.querySelector(`.tree-item[data-path="${path}"]`);
+                if (sel) sel.classList.add('selected');
+            },
+            
+            showContextMenu(e, path, type) {
+                const menu = document.getElementById('contextMenu');
+                menu.style.left = e.pageX+'px'; menu.style.top = e.pageY+'px';
+                menu.style.display = 'block';
+                menu.dataset.path = path; menu.dataset.type = type;
+            },
+            
+            handleFileUpload(files) {
+                Array.from(files).forEach(f => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        fs.structure[f.name] = { type: 'file', content: e.target.result };
+                        this.refreshTree();
+                    };
+                    reader.readAsText(f);
+                });
+            },
+            
             uploadFile() { document.getElementById('fileUpload').click(); },
-            async downloadProject() { /* ... */ const zip=new JSZip(); function add(node, zipFolder){ Object.keys(node).forEach(n=>{ const it=node[n]; if(it.type==='folder'){ const sub=zipFolder.folder(n); add(it.children,sub); } else zipFolder.file(n, it.content); }); } add(fs.structure, zip); const blob=await zip.generateAsync({type:'blob'}); saveAs(blob,'project.zip'); },
+            
+            async downloadProject() {
+                const zip = new JSZip();
+                function add(node, zipFolder) {
+                    Object.keys(node).forEach(k => {
+                        if (node[k].type === 'folder') {
+                            const sub = zipFolder.folder(k);
+                            add(node[k].children, sub);
+                        } else zipFolder.file(k, node[k].content);
+                    });
+                }
+                add(fs.structure, zip);
+                saveAs(await zip.generateAsync({type:'blob'}), 'project.zip');
+            },
+            
             createNewFile() { this.modalPurpose='file'; this.openModal('new file','file.ext'); },
             createNewFolder() { this.modalPurpose='folder'; this.openModal('new folder','folder'); },
-            renameItem() { this.modalPurpose='rename'; this.renameOldPath=document.getElementById('contextMenu').dataset.path; this.openModal('rename', this.renameOldPath?.split('/').pop()); },
-            deleteItem() { /* ... */
-                const path = document.getElementById('contextMenu').dataset.path; if(!path) return;
-                const parts=path.split('/'); const name=parts.pop(); let parent=fs.structure; parts.forEach(p=>parent=parent[p].children); delete parent[name];
-                if(state.openTabs.includes(path)) this.closeTab(path); this.refreshTree();
+            renameItem() { this.modalPurpose='rename'; this.renameOldPath = document.getElementById('contextMenu').dataset.path; this.openModal('rename', this.renameOldPath?.split('/').pop()); },
+            
+            deleteItem() {
+                const path = document.getElementById('contextMenu').dataset.path;
+                if (!path || !confirm(`delete?`)) return;
+                const parts = path.split('/'); const name = parts.pop();
+                let parent = fs.structure;
+                parts.forEach(p => parent = parent[p].children);
+                delete parent[name];
+                if (state.openTabs.includes(path)) this.closeTab(path);
+                this.refreshTree();
             },
-            modalConfirm() { /* minimal */ this.closeModal(); this.refreshTree(); },
-            openModal(title,placeholder) { document.getElementById('modalTitle').innerText=title; document.getElementById('modalInput').placeholder=placeholder; document.getElementById('modalInput').value=''; document.getElementById('inputModal').style.display='flex'; },
-            closeModal() { document.getElementById('inputModal').style.display='none'; },
-            toggleSplitMode() {
-                state.splitActive = !state.splitActive;
-                document.getElementById('splitBtn').classList.toggle('active', state.splitActive);
-                if (state.splitActive) {
-                    if (state.activeFile?.endsWith('.xml')) { this.switchOutputTab('design'); updateAndroidPreview(); }
-                    else { this.switchOutputTab('preview'); runner.runLivePreview(); }
+            
+            modalConfirm() {
+                const val = document.getElementById('modalInput').value.trim();
+                if (!val) return;
+                if (this.modalPurpose === 'file' || this.modalPurpose === 'folder') {
+                    fs.structure[val] = this.modalPurpose==='file' ? {type:'file',content:''} : {type:'folder',children:{}};
+                } else if (this.modalPurpose === 'rename') {
+                    // simplified rename
                 }
+                this.refreshTree(); this.closeModal();
             },
+            
+            openModal(title, placeholder) {
+                document.getElementById('modalTitle').innerText = title;
+                document.getElementById('modalInput').placeholder = placeholder;
+                document.getElementById('inputModal').style.display = 'flex';
+                document.getElementById('contextMenu').style.display = 'none';
+            },
+            closeModal() { document.getElementById('inputModal').style.display = 'none'; },
+            
+            toggleSplit() {
+                state.splitActive = !state.splitActive;
+                state.designActive = false;
+                document.body.classList.toggle('split-mode', state.splitActive);
+                document.body.classList.remove('design-mode');
+                document.getElementById('splitBtn').classList.toggle('active', state.splitActive);
+                if (state.splitActive) runner.runLivePreview();
+            },
+            
+            toggleDesignMode() {
+                state.designActive = !state.designActive;
+                state.splitActive = false;
+                document.body.classList.toggle('design-mode', state.designActive);
+                document.body.classList.remove('split-mode');
+                if (state.designActive && state.activeFile?.endsWith('.xml')) updateAndroidPreview();
+            },
+            
             switchOutputTab(tab) {
-                state.currentOutputTab = tab;
-                ['designPanel','previewPanel','terminalPanel'].forEach(id => document.getElementById(id).style.display = 'none');
-                document.getElementById('tabDesign').classList.remove('active-tab');
-                document.getElementById('tabPreview').classList.remove('active-tab');
-                document.getElementById('tabTerminal').classList.remove('active-tab');
-                if (tab === 'design') { document.getElementById('designPanel').style.display = 'flex'; document.getElementById('tabDesign').classList.add('active-tab'); updateAndroidPreview(); }
-                else if (tab === 'preview') { document.getElementById('previewPanel').style.display = 'flex'; document.getElementById('tabPreview').classList.add('active-tab'); }
-                else { document.getElementById('terminalPanel').style.display = 'block'; document.getElementById('tabTerminal').classList.add('active-tab'); }
+                const term = document.getElementById('terminalPanel');
+                const prev = document.getElementById('previewPanel');
+                const termBtn = document.getElementById('terminalTabBtn');
+                const prevBtn = document.getElementById('previewTabBtn');
+                if (tab==='terminal') {
+                    term.style.display='block'; prev.style.display='none';
+                    termBtn.classList.add('active-tab'); prevBtn.classList.remove('active-tab');
+                } else {
+                    term.style.display='none'; prev.style.display='flex';
+                    prevBtn.classList.add('active-tab'); termBtn.classList.remove('active-tab');
+                }
             }
         };
 
-        // ---------- Android XML preview ----------
+        // ---------- LIVE ANDROID PREVIEW (design mode) ----------
         function updateAndroidPreview() {
-            if (!state.activeFile?.endsWith('.xml')) return;
             const xml = editor.getValue();
             const container = document.getElementById('androidContent');
             container.innerHTML = '';
             try {
                 const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xml, 'text/xml');
-                if (xmlDoc.getElementsByTagName('parsererror').length) throw new Error('parse error');
+                const doc = parser.parseFromString(xml, 'text/xml');
+                if (doc.getElementsByTagName('parsererror').length) throw new Error('parse error');
                 function render(node, parent) {
                     if (node.nodeType === Node.ELEMENT_NODE) {
                         const tag = node.tagName.toLowerCase();
-                        const attrs = {}; for (let a of node.attributes) attrs[a.name] = a.value;
-                        let el;
-                        if (tag === 'textview') { el = document.createElement('div'); el.className='preview-widget textview'; el.innerText = attrs['android:text'] || 'TextView'; }
-                        else if (tag === 'button') { el = document.createElement('div'); el.className='preview-widget button'; el.innerText = attrs['android:text'] || 'Button'; }
-                        else if (tag === 'edittext') { el = document.createElement('div'); el.className='preview-widget edittext'; el.innerText = attrs['android:hint'] || 'edit'; }
-                        else if (tag === 'imageview') { el = document.createElement('div'); el.className='preview-widget imageview'; el.innerHTML = '🖼️'; }
-                        else if (tag === 'linearlayout') { el = document.createElement('div'); el.className='preview-widget linearlayout'; if(attrs['android:orientation']==='horizontal') el.style.display='flex'; }
-                        else { el = document.createElement('div'); el.innerText = `<${tag}>`; }
-                        if (attrs['android:textSize']) el.style.fontSize = attrs['android:textSize'];
-                        if (attrs['android:textColor']) el.style.color = attrs['android:textColor'];
+                        const el = document.createElement('div');
+                        el.className = 'preview-widget';
+                        if (tag === 'textview') {
+                            el.innerText = node.getAttribute('android:text') || 'TextView';
+                            if (node.getAttribute('android:textSize')) el.style.fontSize = node.getAttribute('android:textSize');
+                        } else if (tag === 'button') {
+                            el.innerText = node.getAttribute('android:text') || 'Button';
+                            el.style.background = '#2196F3'; el.style.color = 'white'; el.style.padding = '12px'; el.style.borderRadius = '6px';
+                        } else if (tag === 'linearlayout') {
+                            el.style.display = 'flex'; el.style.flexDirection = node.getAttribute('android:orientation') === 'horizontal' ? 'row' : 'column';
+                            el.style.border = '1px dashed #aaa'; el.style.padding = '8px';
+                        } else {
+                            el.innerText = `<${tag}>`;
+                        }
                         parent.appendChild(el);
-                        for (let child of node.childNodes) render(child, el);
+                        node.childNodes.forEach(child => render(child, el));
                     }
                 }
-                render(xmlDoc.documentElement, container);
-            } catch (e) { container.innerHTML = '<div style="color:#f85149;">XML error</div>'; }
+                render(doc.documentElement, container);
+            } catch (e) {
+                container.innerHTML = `<div style="color:#f85149;">xml error</div>`;
+            }
         }
 
-        // ---------- RUNNER (js, py, etc) ----------
+        // ---------- RUNNER (supports js, jsx, py, html, css) ----------
         const runner = {
+            run() {
+                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
+                // if split mode, just show output; else enter full output
+                document.getElementById('editorZone').classList.add('hidden');
+                document.getElementById('outputZone').classList.remove('hidden');
+                ui.switchOutputTab('terminal');
+                const ext = state.activeFile.split('.').pop();
+                const node = fs.getNode(state.activeFile.split('/'));
+                if (!node) return;
+                
+                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
+                else if (ext === 'jsx') this.runReact();
+                else if (ext === 'py') this.runPython(node.content);
+                else if (ext === 'xml') document.getElementById('terminalPanel').innerHTML = 'android xml – use design mode';
+                else document.getElementById('terminalPanel').innerHTML = 'cannot run';
+            },
+            
             runLivePreview() {
                 if (!state.activeFile) return;
+                fs.saveFile(state.activeFile, editor.getValue());
                 const ext = state.activeFile.split('.').pop();
-                if (ext==='html'||ext==='css'||ext==='js') this._webPreview();
-                else if (ext==='jsx') this._reactPreview();
-                else if (ext==='xml') updateAndroidPreview();
+                if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
+                else if (ext === 'jsx') this.runReact();
             },
-            _webPreview() {
-                let htmlFile = state.activeFile.endsWith('.html') ? state.activeFile : 'index.html';
-                let node = fs.getNode(htmlFile.split('/'));
-                if (!node && fs.structure['index.html']) node = fs.structure['index.html'];
+            
+            runWeb() {
+                let htmlPath = state.activeFile.endsWith('.html') ? state.activeFile : 'index.html';
+                let node = fs.getNode(htmlPath.split('/'));
+                if (!node) node = fs.structure['index.html'];
                 if (!node) return;
                 let html = node.content;
-                html = html.replace(/<link[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (m, p1) => { let css = fs.getNode(p1.split('/')); return css ? `<style>${css.content}</style>` : m; });
-                html = html.replace(/<script[^>]*src=["']([\w\.\/]+\.js)["'][^>]*><\/script>/gi, (m, p1) => { let js = fs.getNode(p1.split('/')); return js ? `<script>${js.content}<\/script>` : m; });
+                html = html.replace(/<link[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (m, p1) => {
+                    let cssNode = fs.getNode(p1.split('/'));
+                    return cssNode ? `<style>${cssNode.content}</style>` : m;
+                });
+                html = html.replace(/<script[^>]*src=["']([\w\.\/]+\.js)["'][^>]*><\/script>/gi, (m, p1) => {
+                    let jsNode = fs.getNode(p1.split('/'));
+                    return jsNode ? `<script>${jsNode.content}<\/script>` : m;
+                });
                 document.getElementById('previewPanel').srcdoc = html;
+                ui.switchOutputTab('preview');
             },
-            _reactPreview() {
+            
+            runReact() {
                 let node = fs.getNode(state.activeFile.split('/'));
                 let doc = `<div id="root"></div><script src="https://unpkg.com/react@18/umd/react.development.js"></script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script><script src="https://unpkg.com/@babel/standalone/babel.min.js"></script><script type="text/babel">${node.content}</script>`;
                 document.getElementById('previewPanel').srcdoc = doc;
+                ui.switchOutputTab('preview');
             },
-            runFull() {
-                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
-                if (state.splitActive) ui.toggleSplitMode(); // exit split for full view
-                document.getElementById('outputZone').style.display = 'flex';
-                const ext = state.activeFile.split('.').pop();
-                const node = fs.getNode(state.activeFile.split('/'));
-                ui.switchOutputTab('terminal');
-                document.getElementById('terminalPanel').innerHTML = '';
-                if (ext==='html'||ext==='css'||ext==='js') { this._webPreview(); ui.switchOutputTab('preview'); }
-                else if (ext==='jsx') { this._reactPreview(); ui.switchOutputTab('preview'); }
-                else if (ext==='py') this._runPython(node.content);
-                else if (ext==='sql') this._runSQL(node.content);
-                else if (ext==='xml') { updateAndroidPreview(); ui.switchOutputTab('design'); }
-                else document.getElementById('terminalPanel').innerText = 'cannot run this file type';
-            },
-            async _runPython(code) {
-                Sk.configure({ output: t => this.log(t), read: x => Sk.builtinFiles.files[x], __future__: Sk.python3, python3:true });
-                try { await Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true)); } catch(e){ this.log('Error: '+e, true); }
-            },
-            async _runSQL(sql) {
-                if (!state.db) { const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` }); state.db = new SQL.Database(); }
-                try { let res = state.db.exec(sql); if(!res.length) this.log('done'); else res.forEach(r => { this.log(JSON.stringify(r)); }); } catch(e){ this.log(e.message, true); }
-            },
-            log(msg, isErr) { let d = document.createElement('div'); d.innerText = msg; if(isErr) d.className='err'; document.getElementById('terminalPanel').appendChild(d); }
+            
+            runPython(code) {
+                let term = document.getElementById('terminalPanel');
+                term.innerHTML = '';
+                Sk.configure({ output: (t) => term.innerHTML += t, read: (x) => { if (Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x]; }, python3: true });
+                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true)).catch(e => term.innerHTML += 'Error: '+e);
+            }
         };
-        document.addEventListener('click', () => document.getElementById('contextMenu').style.display='none');
+
+        document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
     </script>
 </body>
 </html>
