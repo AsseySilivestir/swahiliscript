@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pure IDE · Zap Swahili + all languages</title>
+    <title>pure IDE · Kiswahili (KS) + all languages</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- ACE Editor -->
@@ -53,7 +53,7 @@
             letter-spacing: 0.3px;
         }
         .titlebar .brand i { color: #2f81f7; margin-right: 6px; }
-        .titlebar .brand .zap-badge {
+        .titlebar .brand .ks-badge {
             background: #8b5cf6;
             color: white;
             font-size: 0.7rem;
@@ -318,7 +318,7 @@
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-cpu"></i> pure·ide <span class="zap-badge">Zap</span></div>
+        <div class="brand"><i class="bi bi-cpu"></i> pure·ide <span class="ks-badge">Kiswahili (.ks)</span></div>
         <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
         <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
         <button class="download-btn" onclick="ui.downloadProject()"><i class="bi bi-download"></i> download ZIP</button>
@@ -355,7 +355,7 @@
                     <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
                     <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <div id="terminalPanel" class="terminal">ready · Zap Swahili interpreter loaded</div>
+                <div id="terminalPanel" class="terminal">ready · Kiswahili (KS) interpreter loaded</div>
                 <iframe id="previewPanel" style="display: none;"></iframe>
             </div>
         </div>
@@ -379,15 +379,55 @@
     </div>
 
     <script>
-        // ==================== VIRTUAL FS with Zap Swahili examples ====================
+        // ==================== COMPREHENSIVE KISWAHILI (KS) LANGUAGE GUIDE ====================
+        const ksGuide = {
+            extension: '.ks',
+            name: 'Kiswahili',
+            keywords: {
+                'andika': 'print/output',
+                'kazi': 'function',
+                'rudisha': 'return',
+                'ikiwa': 'if',
+                'au': 'else',
+                'wakati': 'while',
+                '$': 'variable prefix'
+            },
+            operators: {
+                '+': 'jumlisha (addition)',
+                '-': 'toa (subtraction)',
+                '*': 'zidisha (multiplication)',
+                '/': 'gawanya (division)',
+                '%': 'modulo (remainder)',
+                '=': 'weka thamani (assignment)',
+                '==': 'sawa na (equal to)',
+                '!=': 'si sawa (not equal)',
+                '>': 'kubwa kuliko (greater than)',
+                '<': 'ndogo kuliko (less than)',
+                '>=': 'kubwa au sawa (greater or equal)',
+                '<=': 'ndogo au sawa (less or equal)'
+            },
+            examples: {
+                hello: 'andika("Salamu, Dunia!");',
+                variables: '$jina = "Ahmed";\n$umri = 25;\nandika("Jina: " + jina);',
+                math: '$a = 10;\n$b = 5;\n$jumla = a + b;\n$tofauti = a - b;\nandika("Jumla: " + jumla);',
+                loop: '$i = 0;\nwakati (i < 5) {\n  andika("Namba: " + i);\n  i = i + 1;\n}',
+                conditional: '$alama = 75;\nikiwa (alama >= 80) {\n  andika("Daraja A");\n} ikiwa (alama >= 60) {\n  andika("Daraja B");\n} au {\n  andika("Daraja C");\n}',
+                function: 'kazi jumlisha:a,b: => {\n  $matokeo = a + b;\n  rudisha matokeo;\n}\n\n$jibu = jumlisha:10,20:;\nandika("Jibu: " + jibu);'
+            }
+        };
+
+        // ==================== VIRTUAL FS with Kiswahili (.ks) examples ====================
         const fs = {
             structure: {
-                // Zap Swahili examples (.zap extension)
-                'hello.zap': { type: 'file', content: `andika("Salamu, Dunia!");\nandika("Hujambo rafiki yangu!");` },
-                'math.zap': { type: 'file', content: `$x = 10;\n$y = 20;\n$j = x + y;\nandika("Jumla ni: " + j);\n$t = x * y;\nandika("Zao ni: " + t);` },
-                'loop.zap': { type: 'file', content: `$i = 0;\nwakati (i < 5) {\n  andika("Namba: " + i);\n  i = i + 1;\n}\n\nikiwa (5 > 3) {\n  andika("5 ni kubwa kuliko 3");\n} au {\n  andika("Hii haitaonekana");\n}` },
-                'function.zap': { type: 'file', content: `kazi jumlisha:a,b: => {\n  $matokeo = a + b;\n  rudisha matokeo;\n}\n\n$n1 = 15;\n$n2 = 25;\n$jibu = jumlisha:n1,n2:;\nandika("Jibu: " + jibu);` },
-                'fizzbuzz.zap': { type: 'file', content: `$i = 1;\nwakati (i <= 15) {\n  ikiwa (i % 15 == 0) {\n    andika("FizzBuzz");\n  } ikiwa (i % 3 == 0) {\n    andika("Fizz");\n  } ikiwa (i % 5 == 0) {\n    andika("Buzz");\n  } au {\n    andika(i);\n  }\n  i = i + 1;\n}` },
+                // Kiswahili examples (.ks extension)
+                'hello.ks': { type: 'file', content: `// Programu yako ya kwanza\nandika("Salamu, Dunia!");\nandika("Hujambo rafiki yangu!");` },
+                'variables.ks': { type: 'file', content: `// Vigezo (Variables)\n$jina = "Ahmed";\n$umri = 25;\n$urefu = 1.75;\n\nandika("Jina: " + jina);\nandika("Umri: " + umri);\nandika("Urefu: " + urefu);` },
+                'math.ks': { type: 'file', content: `// Hesabu (Math)\n$x = 10;\n$y = 20;\n\n$jumla = x + y;\n$tofauti = x - y;\n$zao = x * y;\n$mgawanyiko = x / y;\n$baki = x % y;\n\nandika("Jumla: " + jumla);\nandika("Tofauti: " + tofauti);\nandika("Zao: " + zao);\nandika("Mgawanyiko: " + mgawanyiko);\nandika("Baki: " + baki);` },
+                'loop.ks': { type: 'file', content: `// Mzunguko (Loop)\n$i = 0;\nwakati (i < 5) {\n  andika("Namba: " + i);\n  i = i + 1;\n}\n\n// Mfano mwingine\n$j = 5;\nwakati (j > 0) {\n  andika("Kupungua: " + j);\n  j = j - 1;\n}` },
+                'conditional.ks': { type: 'file', content: `// Masharti (Conditionals)\n$alama = 85;\n\nikiwa (alama >= 80) {\n  andika("Daraja: A - Vizuri sana!");\n} ikiwa (alama >= 60) {\n  andika("Daraja: B - Nzuri");\n} ikiwa (alama >= 40) {\n  andika("Daraja: C - Wasatii");\n} au {\n  andika("Daraja: D - Jaribu tena");\n}\n\n// Mfano wa umri\n$umri = 18;\nikiwa (umri >= 18) {\n  andika("Unaweza kupiga kura");\n} au {\n  andika("Bado ni mtoto");\n}` },
+                'function.ks': { type: 'file', content: `// Kazi (Functions)\nkazi jumlisha:a,b: => {\n  $matokeo = a + b;\n  rudisha matokeo;\n}\n\nkazi zidisha:a,b: => {\n  $matokeo = a * b;\n  rudisha matokeo;\n}\n\nkazi salamu:jina: => {\n  andika("Habari " + jina + "!");\n}\n\n// Tumia kazi\n$n1 = 15;\n$n2 = 25;\n$jibu1 = jumlisha:n1,n2:;\n$jibu2 = zidisha:n1,n2:;\n\nandika("Jumla: " + jibu1);\nandika("Zao: " + jibu2);\nsalamu:"Ali":;` },
+                'fizzbuzz.ks': { type: 'file', content: `// FizzBuzz kwa Kiswahili\n$i = 1;\nwakati (i <= 20) {\n  ikiwa (i % 15 == 0) {\n    andika("FizzBuzz");\n  } ikiwa (i % 3 == 0) {\n    andika("Fizz");\n  } ikiwa (i % 5 == 0) {\n    andika("Buzz");\n  } au {\n    andika(i);\n  }\n  i = i + 1;\n}` },
+                'fibonacci.ks': { type: 'file', content: `// Fibonacci kwa Kiswahili\nkazi fibonacci:n: => {\n  $a = 0;\n  $b = 1;\n  $i = 0;\n  \n  wakati (i < n) {\n    andika(a);\n    $next = a + b;\n    a = b;\n    b = next;\n    i = i + 1;\n  }\n}\n\nandika("Namba 10 za kwanza za Fibonacci:");\nfibonacci:10:;` },
                 
                 // Regular files
                 'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
@@ -396,7 +436,9 @@
                 'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\n\ngreet("world")\nfor i in range(3):\n    print(f"count {i}")' },
                 'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
                 'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
-                'lib': { type: 'folder', children: {} }
+                'README.md': { type: 'file', content: '# Kiswahili Programming Language (.ks)\n\n## Keywords:\n- andika() - output/print\n- kazi - function\n- rudisha - return\n- ikiwa - if\n- au - else\n- wakati - while\n- $ - variable prefix\n\n## Example:\n```\nandika("Salamu, Dunia!");\n```' },
+                'lib': { type: 'folder', children: {} },
+                'projects': { type: 'folder', children: {} }
             },
             
             getNode(pathArr) {
@@ -451,8 +493,8 @@
         };
 
         const state = {
-            openTabs: ['hello.zap'],
-            activeFile: 'hello.zap',
+            openTabs: ['hello.ks'],
+            activeFile: 'hello.ks',
             db: null,
             annotations: [],
             dragSource: null
@@ -479,17 +521,18 @@
             });
 
             ui.refreshTree();
-            ui.openFile('hello.zap', 'hello.zap');
+            ui.openFile('hello.ks', 'hello.ks');
             
             setupDragAndDrop();
             
             // Check if Swahili script loaded
             setTimeout(() => {
                 if (typeof Interpreter !== 'undefined' && typeof Zap !== 'undefined') {
-                    runner.log('✓ Zap Swahili interpreter loaded successfully!', false, true);
-                    runner.log('  Try running hello.zap or other .zap files', false, true);
+                    runner.log('✓ Kiswahili (KS) interpreter loaded successfully!', false, true);
+                    runner.log('  Try running hello.ks or other .ks files', false, true);
+                    runner.log('  Keywords: andika(), kazi, rudisha, ikiwa, au, wakati', false, true);
                 } else {
-                    runner.log('⚠ Zap interpreter not found - make sure swahili.js is in the root folder', true);
+                    runner.log('⚠ Kiswahili interpreter not found - make sure swahili.js is in the root folder', true);
                 }
             }, 500);
         };
@@ -609,7 +652,7 @@
             },
             
             iconFor(name) {
-                if (name.endsWith('.zap')) return 'bi bi-lightning-charge-fill text-warning'; // Zap files
+                if (name.endsWith('.ks')) return 'bi bi-file-text-fill text-warning'; // Kiswahili files
                 if (name.endsWith('.html')) return 'bi bi-filetype-html';
                 if (name.endsWith('.css')) return 'bi bi-filetype-css';
                 if (name.endsWith('.js')) return 'bi bi-filetype-js';
@@ -617,6 +660,7 @@
                 if (name.endsWith('.py')) return 'bi bi-filetype-py';
                 if (name.endsWith('.sql')) return 'bi bi-database';
                 if (name.endsWith('.json')) return 'bi bi-filetype-json';
+                if (name.endsWith('.md')) return 'bi bi-markdown';
                 return 'bi bi-file-earmark';
             },
             
@@ -630,7 +674,7 @@
                 if (node) {
                     editor.setValue(node.content, -1);
                     const ext = name.split('.').pop();
-                    if (ext === 'zap') {
+                    if (ext === 'ks') {
                         editor.session.setMode('ace/mode/javascript');
                     } else {
                         editor.session.setMode(this.aceMode(name));
@@ -650,7 +694,8 @@
                     jsx:'ace/mode/jsx', 
                     py:'ace/mode/python', 
                     sql:'ace/mode/sql',
-                    json:'ace/mode/json'
+                    json:'ace/mode/json',
+                    md:'ace/mode/markdown'
                 }[ext] || 'ace/mode/text';
             },
             
@@ -705,7 +750,7 @@
                         runner.log(`Uploaded: ${file.name}`, false, true);
                         
                         if (file.name === 'swahili.js') {
-                            runner.log('Note: swahili.js loaded - refresh page to use Zap interpreter', false, true);
+                            runner.log('Note: swahili.js loaded - refresh page to use KS interpreter', false, true);
                         }
                     };
                     reader.readAsText(file);
@@ -740,7 +785,7 @@
             
             createNewFile() { 
                 this.modalPurpose = 'file'; 
-                this.openModal('new file', 'filename.zap (or .html, .py, etc.)'); 
+                this.openModal('new file', 'filename.ks (or .html, .py, etc.)'); 
             },
             
             createNewFolder() { 
@@ -841,12 +886,12 @@
                 try {
                     this.interpreter = new Interpreter(this.input);
                 } catch (e) {
-                    runner.log(`Zap Error: ${e.message}`, true);
+                    runner.log(`KS Error: ${e.message}`, true);
                 }
             }
         }
 
-        // ==================== RUNNER with Zap support ====================
+        // ==================== RUNNER with Kiswahili (KS) support ====================
         const runner = {
             async runAndHideEditor() {
                 if (state.activeFile) {
@@ -868,8 +913,8 @@
                 ui.switchOutputTab('terminal');
 
                 try {
-                    if (ext === 'zap') {
-                        await this.runZap(node.content);
+                    if (ext === 'ks') {
+                        await this.runKiswahili(node.content);
                     } else if (ext === 'html' || ext === 'css' || ext === 'js') {
                         this.runWeb();
                     } else if (ext === 'jsx') {
@@ -894,11 +939,11 @@
                 }
             },
 
-            async runZap(code) {
-                this.log('⚡ Running Zap Swahili script...', false, true);
+            async runKiswahili(code) {
+                this.log('⚡ Running Kiswahili (KS) script...', false, true);
                 
                 if (typeof Interpreter === 'undefined') {
-                    this.log('❌ Error: Swahili interpreter not found!', true);
+                    this.log('❌ Error: Kiswahili interpreter not found!', true);
                     this.log('   Make sure swahili.js is in the root folder', false, true);
                     return;
                 }
@@ -914,20 +959,20 @@
                         this.log(msg);
                     };
                     
-                    // Create and run Zap instance (just like your Node.js version)
+                    // Create and run Zap instance
                     const zap = new Zap(code);
                     
                     // Restore console.log
                     console.log = originalLog;
                     
                     if (outputs.length === 0) {
-                        this.log('✓ Zap script executed (no output)', false, true);
+                        this.log('✓ KS script executed (no output)', false, true);
                     } else {
-                        this.log('✓ Zap script completed', false, true);
+                        this.log('✓ KS script completed', false, true);
                     }
                     
                 } catch (e) {
-                    this.log(`Zap error: ${e.message}`, true);
+                    this.log(`KS error: ${e.message}`, true);
                     const lineMatch = e.message.match(/line (\d+)/i);
                     if (lineMatch) {
                         this.log(`  at line ${lineMatch[1]}`, true);
