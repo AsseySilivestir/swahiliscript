@@ -3,30 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>live·split — code + instant preview</title>
+    <title>Android Studio · live layout designer</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- ACE Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
-    <!-- JSZip + FileSaver for download -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <!-- Skulpt (Python) -->
-    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
-    <!-- Babel & React (for JSX) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- SQL.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-    
+    <!-- XML → Android view simulation (uses simple html/css) -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #0d1117;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #1e1e1e;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -34,24 +22,24 @@
             overflow: hidden;
         }
         .titlebar {
-            background: #161b22;
+            background: #2c2c2c;
             padding: 0.4rem 1rem;
             display: flex;
             align-items: center;
             gap: 1.2rem;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #3c3c3c;
             font-size: 0.9rem;
         }
         .titlebar .brand {
             font-weight: 600;
-            color: #f0f6fc;
+            color: #fff;
             letter-spacing: 0.3px;
         }
-        .titlebar .brand i { color: #2f81f7; margin-right: 6px; }
+        .titlebar .brand i { color: #3ddc84; margin-right: 6px; }  /* Android green */
         .titlebar button {
             background: transparent;
             border: none;
-            color: #e6edf3;
+            color: #ccc;
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -61,348 +49,223 @@
             transition: 0.1s;
             cursor: pointer;
         }
-        .titlebar button:hover { background: #30363d; }
-        .titlebar .run-btn { background: #238636; color: white; margin-left: auto; }
-        .titlebar .run-btn:hover { background: #2ea043; }
-        .titlebar .download-btn { background: #1f6feb; color: white; }
-        .titlebar .download-btn:hover { background: #388bfd; }
-        .titlebar .split-btn.active { background: #30363d; color: #58a6ff; border: 1px solid #58a6ff; }
+        .titlebar button:hover { background: #3c3c3c; color: white; }
+        .titlebar .design-btn { background: #3ddc84; color: #1e1e1e; margin-left: auto; }
+        .titlebar .design-btn:hover { background: #5fe0a0; }
 
         .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
-        .file-sidebar {
-            width: 260px;
-            background: #0d1117;
-            border-right: 1px solid #30363d;
-            display: flex;
-            flex-direction: column;
-            font-size: 0.9rem;
-            position: relative;
-        }
-        .sidebar-header {
-            padding: 0.8rem 1rem;
-            border-bottom: 1px solid #30363d;
-            font-weight: 500;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #7d8590;
-        }
-        .sidebar-actions { display: flex; gap: 8px; }
-        .sidebar-actions i { cursor: pointer; padding: 4px; border-radius: 4px; }
-        .sidebar-actions i:hover { background: #30363d; color: white; }
         
-        #fileTree {
-            flex: 1;
-            overflow-y: auto;
-            list-style: none;
-            padding: 0.5rem 0;
-            min-height: 100px;
-        }
-        
-        .tree-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px 4px 16px;
-            cursor: grab;
-            border-radius: 0 6px 6px 0;
-            margin-right: 4px;
-            white-space: nowrap;
-            user-select: none;
-            transition: background 0.1s;
-        }
-        .tree-item.dragging { opacity: 0.5; background: #1f6feb; }
-        .tree-item.drag-over { background: #388bfd !important; border: 1px dashed #58a6ff; }
-        .tree-item:hover { background: #30363d; }
-        .tree-item.selected { background: #1f6feb; color: white; }
-        .tree-item i { width: 18px; font-size: 0.95rem; color: #8b949e; }
-        .tree-item.selected i { color: white; }
-        .folder-chevron { font-size: 0.7rem; margin-right: 2px; }
-        .tree-children { display: none; padding-left: 1.2rem; list-style: none; }
-        .tree-children.open { display: block; }
-
+        /* LEFT PANEL: XML EDITOR */
         .editor-zone {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: #0d1117;
-            min-width: 0;
+            background: #1e1e1e;
+            min-width: 300px;
+            border-right: 1px solid #3c3c3c;
         }
         .tabs-row {
             display: flex;
-            background: #161b22;
-            border-bottom: 1px solid #30363d;
-            overflow-x: auto;
+            background: #2c2c2c;
+            border-bottom: 1px solid #3c3c3c;
             height: 36px;
         }
         .tab {
-            background: #21262d;
-            color: #b1bac4;
+            background: #1e1e1e;
+            color: #ccc;
             padding: 0 1rem;
             display: flex;
             align-items: center;
             gap: 10px;
             font-size: 0.85rem;
-            border-right: 1px solid #30363d;
+            border-right: 1px solid #3c3c3c;
             cursor: pointer;
-            min-width: 100px;
-            max-width: 140px;
         }
         .tab.active {
-            background: #0d1117;
-            color: #f0f6fc;
-            border-bottom: 2px solid #1f6feb;
+            background: #1e1e1e;
+            color: #fff;
+            border-bottom: 2px solid #3ddc84;
         }
         .tab .close-tab { margin-left: auto; font-size: 1.1rem; opacity: 0.5; }
         .tab .close-tab:hover { opacity: 1; color: #f85149; }
         #editor { flex: 1; width: 100%; font-size: 14px; }
 
-        .output-panel {
-            flex: 1;
-            display: none;  /* hidden by default, shown only in split mode */
-            flex-direction: column;
-            background: #0d1117;
-            min-width: 0;
-            border-left: 1px solid #30363d;
-        }
-        
-        /* Split mode active: both zones visible */
-        body.split-mode .output-panel { display: flex; }
-        body.split-mode .editor-zone { border-right: none; } /* already handled */
-
-        .output-header {
-            background: #161b22;
-            padding: 0.3rem 1rem;
-            border-bottom: 1px solid #30363d;
+        /* RIGHT PANEL: DESIGN PREVIEW (ALWAYS VISIBLE, LIKE STUDIO) */
+        .design-panel {
+            width: 45%;
+            min-width: 320px;
+            background: #2c2c2c;
             display: flex;
-            gap: 2rem;
-            font-size: 0.9rem;
+            flex-direction: column;
+            border-left: 1px solid #3c3c3c;
         }
-        .output-header span { cursor: pointer; padding: 4px 0; color: #8b949e; border-bottom: 2px solid transparent; }
-        .output-header .active-tab { color: #f0f6fc; border-bottom: 2px solid #1f6feb; }
-        .terminal {
+        .design-header {
+            background: #2c2c2c;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+        .design-header i { color: #3ddc84; }
+        .device-frame {
             flex: 1;
-            background: #0d1117;
-            color: #e6edf3;
-            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
-            padding: 1rem;
-            overflow-y: auto;
-            font-size: 0.9rem;
-            white-space: pre-wrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+            padding: 20px;
         }
-        .terminal .err { color: #f85149; }
-        .terminal .info { color: #7ee227; }
-        .terminal .line-error { background: rgba(248,81,73,0.1); border-left: 3px solid #f85149; padding-left: 8px; margin: 4px 0; }
-        iframe { width: 100%; height: 100%; background: white; border: none; }
-
-        .context-menu {
-            position: fixed;
-            background: #21262d;
-            border: 1px solid #454c54;
-            border-radius: 6px;
-            padding: 0.3rem 0;
-            display: none;
-            z-index: 1000;
-        }
-        .context-item { padding: 0.4rem 1.5rem; cursor: pointer; font-size: 0.85rem; }
-        .context-item:hover { background: #1f6feb; color: white; }
-        .modal-bg {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            place-items: center;
-            z-index: 2000;
-        }
-        .modal {
-            background: #161b22;
-            padding: 1.5rem;
-            border-radius: 8px;
-            width: 360px;
-            border: 1px solid #3d444d;
-        }
-        .modal input {
+        .android-screen {
             width: 100%;
-            background: #0d1117;
-            border: 1px solid #3d444d;
-            padding: 0.6rem;
-            color: white;
-            margin: 1rem 0;
-            border-radius: 4px;
+            max-width: 400px;
+            height: 85%;
+            background: #f0f0f0;  /* Light background like app canvas */
+            border-radius: 36px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid #3c3c3c;
         }
-        .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-        .modal-actions button { padding: 0.4rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-primary { background: #238636; color: white; }
-        .btn-primary:hover { background: #2ea043; }
-        .status-line {
-            background: #161b22;
-            padding: 2px 12px;
-            font-size: 0.8rem;
-            color: #8b949e;
-            border-top: 1px solid #30363d;
+        .status-bar {
+            background: #2196F3;
+            color: white;
+            padding: 4px 12px;
+            font-size: 12px;
             display: flex;
             justify-content: space-between;
         }
-        .upload-area {
-            border: 2px dashed #30363d;
-            border-radius: 6px;
-            padding: 20px;
-            text-align: center;
-            margin: 10px;
-            cursor: pointer;
-            transition: border 0.2s;
+        .app-content {
+            flex: 1;
+            background: #f5f5f5;
+            padding: 16px;
+            overflow-y: auto;
+            font-family: 'Roboto', sans-serif;
         }
-        .upload-area:hover { border-color: #1f6feb; }
-        .upload-area i { font-size: 2rem; color: #8b949e; }
-        .hidden { display: none !important; }
+        /* XML generated widgets will be injected here */
+        .preview-widget {
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        .preview-widget.button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .preview-widget.textview {
+            color: #1e1e1e;
+            font-size: 16px;
+            padding: 8px 0;
+        }
+        .preview-widget.edittext {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 10px;
+            background: white;
+            color: #333;
+        }
+        .preview-widget.imageview {
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 24px;
+            min-height: 60px;
+            border-radius: 8px;
+        }
+        .preview-widget.linearlayout {
+            border: 1px dashed #aaa;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+        .preview-widget.linearlayout.horizontal {
+            display: flex;
+            gap: 8px;
+        }
+        .attr-hint {
+            color: #3ddc84;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .status-line {
+            background: #2c2c2c;
+            padding: 2px 12px;
+            font-size: 0.8rem;
+            color: #aaa;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-cpu"></i> live·split</div>
-        <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
-        <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
-        <button class="download-btn" onclick="ui.downloadProject()"><i class="bi bi-download"></i> download ZIP</button>
-        
-        <!-- The all‑important split button: toggles live split preview -->
-        <button id="splitBtn" class="split-btn" onclick="ui.toggleSplit()"><i class="bi bi-layout-split"></i> split view</button>
-        
-        <button class="run-btn" id="runButton" onclick="runner.runFullOutput()"><i class="bi bi-play-fill"></i> run (full output)</button>
+        <div class="brand"><i class="bi bi-phone"></i> layout·studio</div>
+        <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new layout</button>
+        <button class="design-btn" onclick="ui.toggleDesignMode()"><i class="bi bi-palette"></i> design mode (always on)</button>
     </div>
 
     <div class="workspace">
-        <div class="file-sidebar">
-            <div class="sidebar-header">
-                <span>EXPLORER</span>
-                <div class="sidebar-actions">
-                    <i class="bi bi-arrow-repeat" onclick="ui.refreshTree()" title="refresh"></i>
-                    <i class="bi bi-upload" onclick="ui.uploadFile()" title="upload file"></i>
-                </div>
+        <!-- LEFT: EDITOR (XML) -->
+        <div id="editorZone" class="editor-zone">
+            <div class="tabs-row" id="tabsContainer">
+                <div class="tab active">activity_main.xml <span class="close-tab" style="visibility:hidden;">&times;</span></div>
             </div>
-            <input type="file" id="fileUpload" multiple style="display: none;" onchange="ui.handleFileUpload(this.files)">
-            <ul id="fileTree"></ul>
-            <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
-                <i class="bi bi-cloud-upload"></i>
-                <p>Drop files anywhere or click to upload</p>
+            <div id="editor"></div>
+            <div class="status-line">
+                <span id="lintStatus"><i class="bi bi-check-circle-fill text-success"></i> xml ready</span>
+                <span id="saveStatus">Android Studio style · live preview</span>
             </div>
         </div>
 
-        <div id="mainDynamicArea" style="flex:1; display: flex;">
-            <!-- LEFT: EDITOR ZONE (always visible) -->
-            <div id="editorZone" class="editor-zone">
-                <div class="tabs-row" id="tabsContainer"></div>
-                <div id="editor"></div>
-                <div class="status-line">
-                    <span id="lintStatus"><i class="bi bi-check-circle-fill text-success"></i> ready</span>
-                    <span id="saveStatus"></span>
+        <!-- RIGHT: DESIGN PREVIEW (always visible, like design mode) -->
+        <div class="design-panel">
+            <div class="design-header">
+                <i class="bi bi-phone"></i> Pixel 4 · API 30
+                <span style="margin-left:auto;"><i class="bi bi-arrow-repeat"></i> live update</span>
+            </div>
+            <div class="device-frame">
+                <div class="android-screen">
+                    <div class="status-bar">
+                        <span>10:25</span>
+                        <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                    </div>
+                    <div id="androidContent" class="app-content">
+                        <!-- widgets generated from XML will appear here -->
+                        <div class="preview-widget textview" style="font-size:24px; font-weight:bold;">Hello, Android</div>
+                        <div class="preview-widget button">CLICK ME</div>
+                        <div class="preview-widget edittext" contenteditable="false">Type here...</div>
+                    </div>
                 </div>
             </div>
-            <!-- RIGHT: OUTPUT ZONE (visible only when split is active) -->
-            <div id="outputZone" class="output-panel">
-                <div class="output-header">
-                    <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
-                    <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
-                </div>
-                <div id="terminalPanel" class="terminal">ready · split preview active</div>
-                <iframe id="previewPanel" style="display: none;"></iframe>
-            </div>
-        </div>
-    </div>
-
-    <div id="contextMenu" class="context-menu">
-        <div class="context-item" onclick="ui.createNewFile()"><i class="bi bi-file-earmark"></i> new file</div>
-        <div class="context-item" onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</div>
-        <div class="context-item" onclick="ui.renameItem()"><i class="bi bi-pencil"></i> rename</div>
-        <div class="context-item" style="color:#f85149;" onclick="ui.deleteItem()"><i class="bi bi-trash3"></i> delete</div>
-    </div>
-    <div class="modal-bg" id="inputModal">
-        <div class="modal">
-            <h5 id="modalTitle">New file</h5>
-            <input type="text" id="modalInput" placeholder="name.ext">
-            <div class="modal-actions">
-                <button onclick="ui.closeModal()">cancel</button>
-                <button class="btn-primary" onclick="ui.modalConfirm()">ok</button>
+            <div class="status-line" style="border-top:1px solid #3c3c3c; border-left:none;">
+                <span><i class="bi bi-layout-three-columns"></i> design mode</span>
+                <span>XML → view sync</span>
             </div>
         </div>
     </div>
 
     <script>
-        // ---------- VIRTUAL FILE SYSTEM ----------
-        const fs = {
-            structure: {
-                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello live split</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-                'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }\nbutton { background: #238636; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 6px; }' },
-                'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");' },
-                'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\ngreet("split world")\nfor i in range(3):\n    print(f"count {i}")' },
-                'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
-                'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
-                'lib': { type: 'folder', children: {} },
-                'components': { type: 'folder', children: {} }
-            },
-            
-            getNode(pathArr) {
-                let cur = this.structure;
-                for (let i = 0; i < pathArr.length; i++) {
-                    if (!cur[pathArr[i]]) return null;
-                    if (i === pathArr.length - 1) return cur[pathArr[i]];
-                    cur = cur[pathArr[i]].children;
-                }
-                return cur;
-            },
-            
-            saveFile(pathStr, content) {
-                const parts = pathStr.split('/');
-                const name = parts.pop();
-                let parent = this.structure;
-                parts.forEach(p => parent = parent[p].children);
-                if (parent[name]) parent[name].content = content;
-            },
-            
-            moveItem(oldPath, newParentPath) {
-                const oldParts = oldPath.split('/');
-                const name = oldParts.pop();
-                let oldParent = this.structure;
-                oldParts.forEach(p => oldParent = oldParent[p].children);
-                const item = oldParent[name];
-                if (!item) return false;
-                delete oldParent[name];
-                let newParent = this.structure;
-                if (newParentPath) {
-                    const newParts = newParentPath.split('/');
-                    newParts.forEach(p => newParent = newParent[p].children);
-                }
-                newParent[name] = item;
-                // update open tabs
-                state.openTabs = state.openTabs.map(tab => {
-                    if (tab === oldPath) return newParentPath ? `${newParentPath}/${name}` : name;
-                    if (tab.startsWith(oldPath + '/')) return tab.replace(oldPath, newParentPath ? `${newParentPath}/${name}` : name);
-                    return tab;
-                });
-                if (state.activeFile === oldPath) state.activeFile = newParentPath ? `${newParentPath}/${name}` : name;
-                return true;
-            }
-        };
-
-        // ---------- GLOBAL STATE ----------
-        const state = {
-            openTabs: ['index.html'],
-            activeFile: 'index.html',
-            db: null,
-            annotations: [],
-            splitActive: false      // true when right panel visible
-        };
-
+        // ---------- ACE EDITOR SETUP ----------
         let editor;
-        let saveTimeout; // for debounced live preview
+        let previewTimeout;
 
         window.onload = () => {
             editor = ace.edit('editor');
             editor.setTheme('ace/theme/tomorrow_night');
-            editor.session.setMode('ace/mode/html');
+            editor.session.setMode('ace/mode/xml');  // Android layouts are XML
             ace.require('ace/ext/language_tools');
             editor.setOptions({
                 enableBasicAutocompletion: true,
@@ -410,452 +273,253 @@
                 fontSize: '14px'
             });
 
-            editor.session.on('changeAnnotation', function() {
-                state.annotations = editor.session.getAnnotations();
-                updateLintStatus(state.annotations);
-            });
+            // Initial Android XML sample
+            const initialXml = `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome to Android Studio"
+        android:textSize="24sp"
+        android:textColor="#2196F3"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter your name"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SAY HELLO"
+        android:backgroundTint="#4CAF50"
+        android:textColor="#FFFFFF"/>
+
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/ic_launcher"
+        android:layout_marginTop="24dp"
+        android:background="#E0E0E0"
+        android:scaleType="centerInside"/>
+
+</LinearLayout>`;
+
+            editor.setValue(initialXml, -1);
             
-            // THE KEY: any change in editor triggers live preview if split mode is ON
+            // Trigger preview on any change (debounced)
             editor.session.on('change', () => {
-                if (state.splitActive) {
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(() => {
-                        runner.runLivePreview();   // instant sync, no run button needed
-                    }, 300); // slight debounce for smoothness
-                }
+                clearTimeout(previewTimeout);
+                previewTimeout = setTimeout(() => {
+                    updateAndroidPreview();
+                }, 300);  // 300ms debounce feels responsive
             });
 
-            ui.refreshTree();
-            ui.openFile('index.html', 'index.html');
-            
-            setupDragAndDrop();
-            setupKeyboardShortcuts();
+            // Initial preview
+            updateAndroidPreview();
         };
 
-        // ---------- HELPERS ----------
-        function setupKeyboardShortcuts() {
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 's') {
-                    e.preventDefault();
-                    if (state.activeFile) {
-                        fs.saveFile(state.activeFile, editor.getValue());
-                        document.getElementById('saveStatus').innerText = 'saved!';
-                        setTimeout(() => document.getElementById('saveStatus').innerText = '', 1500);
-                    }
-                }
-                if (e.ctrlKey && e.key === 'y') { e.preventDefault(); editor.redo(); }
-                if (e.ctrlKey && e.key === 'n') { e.preventDefault(); ui.createNewFile(); }
-            });
-        }
+        // ---------- LIVE XML → ANDROID PREVIEW ----------
+        function updateAndroidPreview() {
+            const xml = editor.getValue();
+            const container = document.getElementById('androidContent');
+            container.innerHTML = '';  // clear previous
 
-        function setupDragAndDrop() {
-            document.addEventListener('dragover', e => e.preventDefault());
-            document.addEventListener('drop', e => {
-                e.preventDefault();
-                if (e.dataTransfer.files.length) ui.handleFileUpload(e.dataTransfer.files);
-            });
-        }
-
-        function updateLintStatus(ann) {
-            const el = document.getElementById('lintStatus');
-            const errors = ann.filter(a => a.type === 'error');
-            const warnings = ann.filter(a => a.type === 'warning');
-            if (errors.length) el.innerHTML = `<i class="bi bi-x-circle-fill"></i> ${errors.length} error(s) · line ${errors[0].row+1}`;
-            else if (warnings.length) el.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${warnings.length} warning(s)`;
-            else el.innerHTML = `<i class="bi bi-check-circle-fill"></i> no errors`;
-        }
-
-        // ---------- UI OBJECT ----------
-        const ui = {
-            toggleSplit() {
-                const body = document.body;
-                const btn = document.getElementById('splitBtn');
-                state.splitActive = !state.splitActive;
+            try {
+                // Super simple XML parser (just for demo) – we manually parse some tags
+                // In a real tool you'd use a proper parser, but this shows the concept.
+                const lines = xml.split('\n');
+                let currentLayout = null;
+                let layoutStack = [];  // for nested layouts (simplified)
                 
-                if (state.splitActive) {
-                    body.classList.add('split-mode');
-                    btn.classList.add('active');
-                    // Ensure preview shows something relevant
-                    runner.runLivePreview();
-                    ui.switchOutputTab('preview');  // prefer preview on split
-                } else {
-                    body.classList.remove('split-mode');
-                    btn.classList.remove('active');
+                // Very naive tag extraction – only for demo purposes.
+                // It extracts tags like <TextView ... /> or <Button ... > ... </Button>
+                const tagRegex = /<(\w+)([^>]*?)(\/?>|<\/\1>)/gs;
+                let match;
+                // We'll collect root views and approximate.
+                // For simplicity we just find all self-closing or open tags and render.
+                // This is NOT a full XML parser, just a demo to simulate Android Studio feel.
+                
+                // Reset container, then parse
+                const tempDiv = document.createElement('div');
+                let insideTag = false;
+                let currentTagName = '';
+                
+                // Better approach: use DOMParser to parse XML (browser built-in)
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xml, 'text/xml');
+                
+                // Check for parsing errors
+                const parseError = xmlDoc.getElementsByTagName('parsererror');
+                if (parseError.length > 0) {
+                    container.innerHTML = `<div style="color:#f85149; background:#2d2d2d; padding:12px; border-radius:8px;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> XML parsing error. Check syntax.
+                    </div>`;
+                    return;
                 }
-            },
-            
-            refreshTree() {
-                const container = document.getElementById('fileTree');
-                container.innerHTML = '';
-                this.renderLevel(fs.structure, container, '');
-            },
-            
-            renderLevel(node, parentEl, pathPrefix) {
-                Object.keys(node).sort((a,b) => {
-                    if (node[a].type !== node[b].type) return node[a].type === 'folder' ? -1 : 1;
-                    return a.localeCompare(b);
-                }).forEach(name => {
-                    const item = node[name];
-                    const fullPath = pathPrefix ? pathPrefix + '/' + name : name;
-                    const li = document.createElement('li');
-                    
-                    if (item.type === 'folder') {
-                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="folder" style="padding-left: ${pathPrefix.split('/').filter(Boolean).length * 14}px" draggable="true">
-                            <i class="bi bi-chevron-down folder-chevron"></i>
-                            <i class="bi bi-folder-fill"></i> ${name}
-                        </div><ul class="tree-children open" data-parent="${fullPath}"></ul>`;
-                        
-                        const childUl = li.querySelector('ul');
-                        this.renderLevel(item.children, childUl, fullPath);
-                        
-                        const div = li.querySelector('.tree-item');
-                        div.onclick = (e) => {
-                            e.stopPropagation();
-                            childUl.classList.toggle('open');
-                            div.querySelector('.bi-chevron-down').style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
-                        };
-                        
-                        // drag & drop handlers
-                        div.ondragover = e => { e.preventDefault(); div.classList.add('drag-over'); };
-                        div.ondragleave = () => div.classList.remove('drag-over');
-                        div.ondrop = e => {
-                            e.preventDefault(); div.classList.remove('drag-over');
-                            const source = e.dataTransfer.getData('text/plain');
-                            if (source && source !== fullPath && confirm(`Move to folder?`)) {
-                                if (fs.moveItem(source, fullPath)) { this.refreshTree(); this.refreshTabs(); }
-                            }
-                        };
-                        div.ondragstart = e => { e.dataTransfer.setData('text/plain', fullPath); div.classList.add('dragging'); };
-                        div.ondragend = () => div.classList.remove('dragging');
-                        
-                    } else {
-                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="file" style="padding-left: ${pathPrefix.split('/').filter(Boolean).length * 14 + 20}px" draggable="true">
-                            <i class="${this.iconFor(name)}"></i> ${name}
-                        </div>`;
-                        
-                        const div = li.querySelector('.tree-item');
-                        div.onclick = () => this.openFile(fullPath, name);
-                        div.ondragstart = e => { e.dataTransfer.setData('text/plain', fullPath); div.classList.add('dragging'); };
-                        div.ondragend = () => div.classList.remove('dragging');
-                    }
-                    
-                    li.querySelector('.tree-item').oncontextmenu = (e) => {
-                        e.preventDefault();
-                        this.showContextMenu(e, fullPath, item.type);
-                    };
-                    
-                    parentEl.appendChild(li);
-                });
-            },
-            
-            iconFor(name) {
-                if (name.endsWith('.html')) return 'bi bi-filetype-html';
-                if (name.endsWith('.css')) return 'bi bi-filetype-css';
-                if (name.endsWith('.js')) return 'bi bi-filetype-js';
-                if (name.endsWith('.jsx')) return 'bi bi-filetype-jsx';
-                if (name.endsWith('.py')) return 'bi bi-filetype-py';
-                if (name.endsWith('.sql')) return 'bi bi-database';
-                return 'bi bi-file-earmark';
-            },
-            
-            openFile(path, name) {
-                if (!state.openTabs.includes(path)) state.openTabs.push(path);
-                state.activeFile = path;
-                const node = fs.getNode(path.split('/'));
-                if (node) {
-                    editor.setValue(node.content, -1);
-                    editor.session.setMode(this.aceMode(name));
-                    this.highlightActive(path);
-                    this.refreshTabs();
-                    
-                    // if split active, update preview with new file context
-                    if (state.splitActive) runner.runLivePreview();
-                }
-            },
-            
-            aceMode(name) {
-                const ext = name.split('.').pop();
-                return { html:'ace/mode/html', css:'ace/mode/css', js:'ace/mode/javascript', jsx:'ace/mode/jsx', py:'ace/mode/python', sql:'ace/mode/sql' }[ext] || 'ace/mode/text';
-            },
-            
-            refreshTabs() {
-                const cont = document.getElementById('tabsContainer');
-                cont.innerHTML = '';
-                state.openTabs.forEach(p => {
-                    const name = p.split('/').pop();
-                    const active = p === state.activeFile ? 'active' : '';
-                    const tab = document.createElement('div');
-                    tab.className = `tab ${active}`;
-                    tab.innerHTML = `${name} <span class="close-tab" onclick="event.stopPropagation(); ui.closeTab('${p}')">&times;</span>`;
-                    tab.onclick = () => this.openFile(p, name);
-                    cont.appendChild(tab);
-                });
-            },
-            
-            closeTab(path) {
-                state.openTabs = state.openTabs.filter(p => p !== path);
-                if (state.activeFile === path) {
-                    state.activeFile = state.openTabs[0] || null;
-                    if (state.activeFile) {
-                        const node = fs.getNode(state.activeFile.split('/'));
-                        editor.setValue(node.content, -1);
-                    } else editor.setValue('');
-                }
-                this.refreshTabs();
-            },
-            
-            highlightActive(path) {
-                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
-                const sel = document.querySelector(`.tree-item[data-path="${path}"]`);
-                if (sel) sel.classList.add('selected');
-            },
-            
-            showContextMenu(e, path, type) {
-                const menu = document.getElementById('contextMenu');
-                menu.style.left = e.pageX + 'px';
-                menu.style.top = e.pageY + 'px';
-                menu.style.display = 'block';
-                menu.dataset.path = path;
-                menu.dataset.type = type;
-            },
-            
-            handleFileUpload(files) {
-                Array.from(files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        fs.structure[file.name] = { type: 'file', content: e.target.result };
-                        this.refreshTree();
-                        runner.log(`Uploaded: ${file.name}`, false, true);
-                    };
-                    reader.readAsText(file);
-                });
-            },
-            
-            uploadFile() { document.getElementById('fileUpload').click(); },
-            
-            async downloadProject() {
-                const zip = new JSZip();
-                function addToZip(node, zipFolder) {
-                    Object.keys(node).forEach(name => {
-                        const item = node[name];
-                        if (item.type === 'folder') {
-                            const sub = zipFolder.folder(name);
-                            addToZip(item.children, sub);
-                        } else {
-                            zipFolder.file(name, item.content);
+                
+                // Recursive function to render Android views from XML nodes
+                function renderNode(node, parentElement) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        // Ignore whitespace
+                        if (node.textContent.trim()) {
+                            // For text inside like <TextView>some text</TextView>
+                            const textSpan = document.createElement('span');
+                            textSpan.className = 'preview-widget textview';
+                            textSpan.style.padding = '4px 0';
+                            textSpan.innerText = node.textContent.trim();
+                            parentElement.appendChild(textSpan);
                         }
-                    });
-                }
-                addToZip(fs.structure, zip);
-                const blob = await zip.generateAsync({ type: 'blob' });
-                saveAs(blob, 'project.zip');
-                runner.log('project.zip downloaded', false, true);
-            },
-            
-            createNewFile() { this.modalPurpose = 'file'; this.openModal('new file', 'filename.ext'); },
-            createNewFolder() { this.modalPurpose = 'folder'; this.openModal('new folder', 'folder name'); },
-            renameItem() { this.modalPurpose = 'rename'; this.renameOldPath = document.getElementById('contextMenu').dataset.path; this.openModal('rename', this.renameOldPath?.split('/').pop()); },
-            
-            deleteItem() {
-                const path = document.getElementById('contextMenu').dataset.path;
-                if (!path || !confirm(`delete ${path}?`)) return;
-                const parts = path.split('/');
-                const name = parts.pop();
-                let parent = fs.structure;
-                parts.forEach(p => parent = parent[p].children);
-                delete parent[name];
-                if (state.openTabs.includes(path)) this.closeTab(path);
-                this.refreshTree();
-            },
-            
-            modalConfirm() {
-                const val = document.getElementById('modalInput').value.trim();
-                if (!val) return;
-                const ctxPath = document.getElementById('contextMenu').dataset.path;
-                const ctxType = document.getElementById('contextMenu').dataset.type;
-
-                if (this.modalPurpose === 'file' || this.modalPurpose === 'folder') {
-                    let target = fs.structure;
-                    if (ctxPath) {
-                        if (ctxType === 'folder') target = fs.getNode(ctxPath.split('/')).children;
-                        else {
-                            const p = ctxPath.split('/'); p.pop();
-                            if (p.length) target = fs.getNode(p).children;
+                        return;
+                    }
+                    
+                    if (node.nodeType !== Node.ELEMENT_NODE) return;
+                    
+                    const tagName = node.tagName.toLowerCase();
+                    const attrs = {};
+                    for (let attr of node.attributes) {
+                        attrs[attr.name] = attr.value;
+                    }
+                    
+                    // Create preview element based on tag
+                    let el;
+                    if (tagName === 'textview') {
+                        el = document.createElement('div');
+                        el.className = 'preview-widget textview';
+                        el.innerText = attrs['android:text'] || 'TextView';
+                        if (attrs['android:textSize']) el.style.fontSize = attrs['android:textSize'];
+                        if (attrs['android:textColor']) el.style.color = attrs['android:textColor'];
+                        if (attrs['android:layout_marginBottom']) el.style.marginBottom = attrs['android:layout_marginBottom'];
+                    }
+                    else if (tagName === 'button') {
+                        el = document.createElement('div');
+                        el.className = 'preview-widget button';
+                        el.innerText = attrs['android:text'] || 'Button';
+                        if (attrs['android:backgroundTint']) el.style.background = attrs['android:backgroundTint'];
+                        if (attrs['android:textColor']) el.style.color = attrs['android:textColor'];
+                        if (attrs['android:layout_marginBottom']) el.style.marginBottom = attrs['android:layout_marginBottom'];
+                    }
+                    else if (tagName === 'edittext') {
+                        el = document.createElement('div');
+                        el.className = 'preview-widget edittext';
+                        el.innerText = attrs['android:text'] || attrs['android:hint'] || 'EditText';
+                        if (attrs['android:hint'] && !attrs['android:text']) {
+                            el.style.color = '#aaa';
+                            el.innerText = attrs['android:hint'];
                         }
+                        if (attrs['android:background']) el.style.background = attrs['android:background'];
                     }
-                    target[val] = this.modalPurpose === 'file' ? { type:'file', content:'' } : { type:'folder', children:{} };
-                } else if (this.modalPurpose === 'rename') {
-                    const old = this.renameOldPath;
-                    const parts = old.split('/');
-                    const oldName = parts.pop();
-                    let parent = fs.structure;
-                    parts.forEach(p => parent = parent[p].children);
-                    parent[val] = parent[oldName];
-                    delete parent[oldName];
-                    const newPath = parts.concat([val]).join('/');
-                    if (state.openTabs.includes(old)) {
-                        state.openTabs = state.openTabs.map(p => p === old ? newPath : p);
-                        if (state.activeFile === old) state.activeFile = newPath;
+                    else if (tagName === 'imageview') {
+                        el = document.createElement('div');
+                        el.className = 'preview-widget imageview';
+                        el.innerHTML = '🖼️ ' + (attrs['android:src'] || 'image');
+                        if (attrs['android:layout_width'] === 'match_parent') el.style.width = '100%';
+                        if (attrs['android:layout_height']) el.style.height = attrs['android:layout_height'];
                     }
-                }
-                this.refreshTree();
-                this.closeModal();
-            },
-            
-            openModal(title, placeholder) {
-                document.getElementById('modalTitle').innerText = title;
-                document.getElementById('modalInput').placeholder = placeholder;
-                document.getElementById('modalInput').value = '';
-                document.getElementById('inputModal').style.display = 'flex';
-                document.getElementById('contextMenu').style.display = 'none';
-            },
-            
-            closeModal() { document.getElementById('inputModal').style.display = 'none'; },
-            
-            switchOutputTab(tab) {
-                const term = document.getElementById('terminalPanel');
-                const prev = document.getElementById('previewPanel');
-                const termBtn = document.getElementById('terminalTabBtn');
-                const prevBtn = document.getElementById('previewTabBtn');
-                if (tab === 'terminal') {
-                    term.style.display = 'block'; prev.style.display = 'none';
-                    termBtn.classList.add('active-tab'); prevBtn.classList.remove('active-tab');
-                } else {
-                    term.style.display = 'none'; prev.style.display = 'flex';
-                    prevBtn.classList.add('active-tab'); termBtn.classList.remove('active-tab');
-                }
-            }
-        };
-
-        // ---------- RUNNER (live preview & full run) ----------
-        const runner = {
-            // called automatically on editor change (debounced) when split active
-            runLivePreview() {
-                if (!state.activeFile) return;
-                fs.saveFile(state.activeFile, editor.getValue());   // persist
-
-                const ext = state.activeFile.split('.').pop();
-                if (ext === 'html' || ext === 'css' || ext === 'js') {
-                    this._renderWebPreview();
-                } else if (ext === 'jsx') {
-                    this._renderReactPreview();
-                } else {
-                    // For python/sql we don't auto-run; we could optionally show in terminal? but keep terminal clean.
-                    // if preview tab is active, show a placeholder
-                    const prev = document.getElementById('previewPanel');
-                    if (prev.style.display !== 'none') {
-                        prev.srcdoc = '<body style="background:#0d1117;color:#ccc;padding:2rem">⏳ preview only for web files (HTML/CSS/JS/JSX)</body>';
+                    else if (tagName === 'linearlayout') {
+                        el = document.createElement('div');
+                        el.className = 'preview-widget linearlayout';
+                        if (attrs['android:orientation'] === 'horizontal') {
+                            el.classList.add('horizontal');
+                        }
+                        if (attrs['android:padding']) el.style.padding = attrs['android:padding'];
+                        if (attrs['android:layout_width'] === 'match_parent') el.style.width = '100%';
                     }
-                }
-            },
-
-            _renderWebPreview() {
-                // Find HTML to render (active or index.html)
-                let htmlFile = state.activeFile.endsWith('.html') ? state.activeFile : 'index.html';
-                let node = fs.getNode(htmlFile.split('/'));
-                if (!node && fs.structure['index.html']) node = fs.structure['index.html'];
-                if (!node) return;
-                
-                let html = node.content;
-                // inject linked css/js
-                html = html.replace(/<link[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (match, p1) => {
-                    const cssNode = fs.getNode(p1.split('/'));
-                    return cssNode ? `<style>/* ${p1} */\n${cssNode.content}</style>` : match;
-                });
-                html = html.replace(/<script[^>]*src=["']([\w\.\/]+\.js)["'][^>]*><\/script>/gi, (match, p1) => {
-                    const jsNode = fs.getNode(p1.split('/'));
-                    return jsNode ? `<script>/* ${p1} */\n${jsNode.content}<\/script>` : match;
-                });
-                document.getElementById('previewPanel').srcdoc = html;
-            },
-
-            _renderReactPreview() {
-                const node = fs.getNode(state.activeFile.split('/'));
-                if (!node) return;
-                const doc = `
-                    <div id="root"></div>
-                    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-                    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-                    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-                    <script type="text/babel">${node.content}</script>
-                `;
-                document.getElementById('previewPanel').srcdoc = doc;
-            },
-
-            // classic full run (replaces editor with output)
-            runFullOutput() {
-                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
-                // exit split mode for full view
-                if (state.splitActive) ui.toggleSplit();
-                
-                document.getElementById('editorZone').classList.add('hidden');
-                document.getElementById('outputZone').classList.remove('hidden');
-                
-                if (!state.activeFile) { this.log('no file', false, true); return; }
-                const ext = state.activeFile.split('.').pop();
-                const node = fs.getNode(state.activeFile.split('/'));
-                if (!node) return;
-
-                document.getElementById('terminalPanel').innerHTML = '';
-                ui.switchOutputTab('terminal');
-
-                if (ext === 'html' || ext === 'css' || ext === 'js') this._renderWebPreview(); // actually preview
-                else if (ext === 'jsx') this._renderReactPreview();
-                else if (ext === 'py') this._runPython(node.content);
-                else if (ext === 'sql') this._runSQL(node.content);
-                else this.log(`cannot run .${ext}`, true);
-
-                if (ext === 'py' || ext === 'sql') ui.switchOutputTab('terminal');
-                else ui.switchOutputTab('preview');
-            },
-
-            async _runPython(code) {
-                Sk.configure({ 
-                    output: t => this.log(t),
-                    read: x => { if (Sk.builtinFiles && Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x]; throw 'file not found'; },
-                    __future__: Sk.python3,
-                    python3: true
-                });
-                try {
-                    await Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true));
-                } catch (err) {
-                    this.log(`Python error: ${err}`, true);
-                }
-            },
-
-            async _runSQL(sql) {
-                if (!state.db) {
-                    const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` });
-                    state.db = new SQL.Database();
-                }
-                try {
-                    const res = state.db.exec(sql);
-                    if (!res.length) this.log('done (no rows)', false, true);
                     else {
-                        res.forEach(r => {
-                            let table = '<table border="1" style="border-collapse:collapse"><tr>' + r.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
-                            r.values.forEach(v => table += '<tr>' + v.map(d => `<td>${d}</td>`).join('') + '</tr>');
-                            table += '</table>';
-                            document.getElementById('terminalPanel').innerHTML += table;
-                        });
+                        // unknown tag – just a box
+                        el = document.createElement('div');
+                        el.className = 'preview-widget';
+                        el.style.padding = '8px';
+                        el.style.background = '#eaeaea';
+                        el.style.color = '#888';
+                        el.innerText = `<${tagName}> preview`;
                     }
-                } catch (e) {
-                    this.log('sql err: '+e.message, true);
+                    
+                    // Apply common layout attributes
+                    if (attrs['android:layout_width'] === 'match_parent') el.style.width = '100%';
+                    if (attrs['android:layout_height'] === 'match_parent') el.style.height = '100%';
+                    if (attrs['android:layout_margin']) el.style.margin = attrs['android:layout_margin'];
+                    if (attrs['android:layout_marginBottom']) el.style.marginBottom = attrs['android:layout_marginBottom'];
+                    if (attrs['android:layout_marginTop']) el.style.marginTop = attrs['android:layout_marginTop'];
+                    if (attrs['android:gravity'] === 'center') el.style.textAlign = 'center';
+                    
+                    parentElement.appendChild(el);
+                    
+                    // Process children recursively
+                    for (let child of node.childNodes) {
+                        renderNode(child, el);
+                    }
                 }
-            },
+                
+                // Start from root element
+                const root = xmlDoc.documentElement;
+                if (root) {
+                    renderNode(root, container);
+                } else {
+                    container.innerHTML = '<div class="preview-widget textview">No root element</div>';
+                }
+                
+                // Add a little note about live updates
+                const note = document.createElement('div');
+                note.style.marginTop = '12px';
+                note.style.fontSize = '11px';
+                note.style.color = '#3ddc84';
+                note.style.textAlign = 'center';
+                note.innerHTML = '<i class="bi bi-lightning-charge"></i> live design · type to update';
+                container.appendChild(note);
+                
+            } catch (e) {
+                container.innerHTML = `<div style="color:#f85149;">Error parsing XML: ${e.message}</div>`;
+            }
+        }
 
-            log(msg, isErr, isInfo) {
-                const el = document.getElementById('terminalPanel');
-                const d = document.createElement('div');
-                d.innerText = msg;
-                if (isErr) d.className = 'err';
-                else if (isInfo) d.className = 'info';
-                el.appendChild(d);
-                el.scrollTop = el.scrollHeight;
+        // ---------- SIMPLE UI ACTIONS (to mimic studio) ----------
+        const ui = {
+            createNewFile() {
+                const newLayout = `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Layout"
+        android:textSize="20sp"/>
+
+</LinearLayout>`;
+                editor.setValue(newLayout, -1);
+                document.getElementById('saveStatus').innerText = 'new layout created';
+                setTimeout(() => document.getElementById('saveStatus').innerText = 'Android Studio style · live preview', 2000);
+            },
+            
+            toggleDesignMode() {
+                // Design mode is always on, but we can simulate a toast
+                document.getElementById('saveStatus').innerText = 'design mode always active';
+                setTimeout(() => document.getElementById('saveStatus').innerText = 'Android Studio style · live preview', 1500);
             }
         };
 
-        document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
+        // Minor: update status on save shortcut (Ctrl+S)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                document.getElementById('saveStatus').innerText = 'layout synced ✓';
+                setTimeout(() => document.getElementById('saveStatus').innerText = 'Android Studio style · live preview', 1500);
+            }
+        });
     </script>
 </body>
 </html>
