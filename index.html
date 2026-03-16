@@ -3,18 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Android Studio · live layout designer</title>
+    <title>polyglot studio · xml design + js + python + zip</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- ACE Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
-    <!-- XML → Android view simulation (uses simple html/css) -->
+    <!-- JSZip + FileSaver -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Skulpt (Python) -->
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+    <!-- Babel & React -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- SQL.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #1e1e1e;
-            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -26,16 +38,17 @@
             padding: 0.4rem 1rem;
             display: flex;
             align-items: center;
-            gap: 1.2rem;
+            gap: 1rem;
             border-bottom: 1px solid #3c3c3c;
             font-size: 0.9rem;
+            flex-wrap: wrap;
         }
         .titlebar .brand {
             font-weight: 600;
             color: #fff;
             letter-spacing: 0.3px;
         }
-        .titlebar .brand i { color: #3ddc84; margin-right: 6px; }  /* Android green */
+        .titlebar .brand i { color: #3ddc84; margin-right: 6px; }
         .titlebar button {
             background: transparent;
             border: none;
@@ -46,36 +59,87 @@
             padding: 0.3rem 0.9rem;
             border-radius: 6px;
             font-size: 0.85rem;
-            transition: 0.1s;
             cursor: pointer;
+            white-space: nowrap;
         }
         .titlebar button:hover { background: #3c3c3c; color: white; }
-        .titlebar .design-btn { background: #3ddc84; color: #1e1e1e; margin-left: auto; }
-        .titlebar .design-btn:hover { background: #5fe0a0; }
+        .titlebar .run-btn { background: #238636; color: white; }
+        .titlebar .run-btn:hover { background: #2ea043; }
+        .titlebar .split-btn.active { background: #3ddc84; color: #1e1e1e; }
+        .titlebar .download-btn { background: #1f6feb; color: white; }
 
         .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
+        /* FILE TREE SIDEBAR */
+        .file-sidebar {
+            width: 280px;
+            background: #252526;
+            border-right: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9rem;
+        }
+        .sidebar-header {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #3c3c3c;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #aaa;
+        }
+        .sidebar-actions { display: flex; gap: 8px; }
+        .sidebar-actions i { cursor: pointer; padding: 4px; border-radius: 4px; }
+        .sidebar-actions i:hover { background: #3c3c3c; color: white; }
         
-        /* LEFT PANEL: XML EDITOR */
+        #fileTree {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0.5rem 0;
+            min-height: 100px;
+        }
+        .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px 4px 16px;
+            cursor: grab;
+            border-radius: 0 6px 6px 0;
+            margin-right: 4px;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .tree-item.dragging { opacity: 0.5; background: #0e639c; }
+        .tree-item.drag-over { background: #094771 !important; border: 1px dashed #3ddc84; }
+        .tree-item:hover { background: #2a2d2e; }
+        .tree-item.selected { background: #094771; color: white; }
+        .tree-item i { width: 18px; color: #8b949e; }
+        .folder-chevron { font-size: 0.7rem; margin-right: 2px; }
+        .tree-children { display: none; padding-left: 1.5rem; list-style: none; }
+        .tree-children.open { display: block; }
+        .tree-item .prefix-tree { color: #6e7681; margin-right: 4px; font-family: monospace; }
+
+        /* CENTER/EDITOR AREA */
         .editor-zone {
             flex: 1;
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
             min-width: 300px;
-            border-right: 1px solid #3c3c3c;
         }
         .tabs-row {
             display: flex;
             background: #2c2c2c;
             border-bottom: 1px solid #3c3c3c;
+            overflow-x: auto;
             height: 36px;
         }
         .tab {
-            background: #1e1e1e;
+            background: #2c2c2c;
             color: #ccc;
             padding: 0 1rem;
             display: flex;
@@ -84,6 +148,7 @@
             font-size: 0.85rem;
             border-right: 1px solid #3c3c3c;
             cursor: pointer;
+            white-space: nowrap;
         }
         .tab.active {
             background: #1e1e1e;
@@ -94,45 +159,63 @@
         .tab .close-tab:hover { opacity: 1; color: #f85149; }
         #editor { flex: 1; width: 100%; font-size: 14px; }
 
-        /* RIGHT PANEL: DESIGN PREVIEW (ALWAYS VISIBLE, LIKE STUDIO) */
-        .design-panel {
+        /* RIGHT OUTPUT PANEL (split/run modes) */
+        .output-panel {
             width: 45%;
-            min-width: 320px;
-            background: #2c2c2c;
+            min-width: 350px;
+            background: #252526;
             display: flex;
             flex-direction: column;
             border-left: 1px solid #3c3c3c;
         }
-        .design-header {
+        .output-header {
             background: #2c2c2c;
-            padding: 0.5rem 1rem;
+            padding: 0.3rem 1rem;
             border-bottom: 1px solid #3c3c3c;
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            color: #aaa;
+            gap: 2rem;
+        }
+        .output-header span { cursor: pointer; padding: 4px 0; color: #aaa; border-bottom: 2px solid transparent; }
+        .output-header .active-tab { color: #fff; border-bottom: 2px solid #3ddc84; }
+        .terminal {
+            flex: 1;
+            background: #1e1e1e;
+            color: #e6edf3;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 1rem;
+            overflow-y: auto;
+            white-space: pre-wrap;
             font-size: 0.85rem;
         }
-        .design-header i { color: #3ddc84; }
+        .terminal .err { color: #f85149; }
+        .terminal .info { color: #7ee227; }
+        iframe { width: 100%; height: 100%; background: white; border: none; }
+
+        /* Android design preview specific */
+        .design-preview {
+            flex: 1;
+            background: #2c2c2c;
+            display: flex;
+            flex-direction: column;
+        }
         .device-frame {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #1a1a1a;
-            padding: 20px;
+            padding: 16px;
         }
         .android-screen {
             width: 100%;
-            max-width: 400px;
-            height: 85%;
-            background: #f0f0f0;  /* Light background like app canvas */
+            max-width: 380px;
+            height: 90%;
+            background: #f0f0f0;
             border-radius: 36px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            border: 2px solid #3c3c3c;
         }
         .status-bar {
             background: #2196F3;
@@ -147,379 +230,403 @@
             background: #f5f5f5;
             padding: 16px;
             overflow-y: auto;
-            font-family: 'Roboto', sans-serif;
         }
-        /* XML generated widgets will be injected here */
-        .preview-widget {
-            margin-bottom: 12px;
-            width: 100%;
+        .preview-widget { margin-bottom: 12px; width: 100%; }
+        .preview-widget.button { background: #2196F3; color: white; padding: 12px; border-radius: 8px; text-align: center; }
+        .preview-widget.textview { color: #1e1e1e; padding: 8px 0; }
+        .preview-widget.edittext { border:1px solid #ccc; border-radius:6px; padding:10px; background:white; }
+        .preview-widget.imageview { background:#e0e0e0; min-height:60px; display:flex; align-items:center; justify-content:center; }
+
+        .context-menu {
+            position: fixed; background: #2c2c2c; border:1px solid #3c3c3c; border-radius:6px; padding:0.3rem 0; display:none; z-index:1000;
         }
-        .preview-widget.button {
-            background: #2196F3;
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-weight: 500;
-            text-align: center;
+        .context-item { padding:0.4rem 1.5rem; cursor:pointer; }
+        .context-item:hover { background:#094771; color:white; }
+        .modal-bg {
+            position: fixed; inset:0; background:rgba(0,0,0,0.7); display:none; place-items:center; z-index:2000;
         }
-        .preview-widget.textview {
-            color: #1e1e1e;
-            font-size: 16px;
-            padding: 8px 0;
+        .modal {
+            background:#2c2c2c; padding:1.5rem; border-radius:8px; width:360px;
         }
-        .preview-widget.edittext {
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 10px;
-            background: white;
-            color: #333;
-        }
-        .preview-widget.imageview {
-            background: #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #888;
-            font-size: 24px;
-            min-height: 60px;
-            border-radius: 8px;
-        }
-        .preview-widget.linearlayout {
-            border: 1px dashed #aaa;
-            padding: 8px;
-            margin-bottom: 12px;
-        }
-        .preview-widget.linearlayout.horizontal {
-            display: flex;
-            gap: 8px;
-        }
-        .attr-hint {
-            color: #3ddc84;
-            font-size: 11px;
-            font-family: monospace;
-        }
+        .modal input { width:100%; background:#1e1e1e; border:1px solid #3c3c3c; padding:0.6rem; color:white; margin:1rem 0; }
+        .modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; }
+        .btn-primary { background:#3ddc84; color:#1e1e1e; }
         .status-line {
-            background: #2c2c2c;
-            padding: 2px 12px;
-            font-size: 0.8rem;
-            color: #aaa;
-            border-top: 1px solid #3c3c3c;
-            display: flex;
-            justify-content: space-between;
+            background:#2c2c2c; padding:2px 12px; font-size:0.8rem; color:#aaa; border-top:1px solid #3c3c3c;
+            display:flex; justify-content:space-between;
         }
+        .hidden { display: none !important; }
+        .upload-area { border:2px dashed #3c3c3c; border-radius:6px; padding:20px; text-align:center; margin:10px; cursor:pointer; }
     </style>
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-phone"></i> layout·studio</div>
-        <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new layout</button>
-        <button class="design-btn" onclick="ui.toggleDesignMode()"><i class="bi bi-palette"></i> design mode (always on)</button>
+        <div class="brand"><i class="bi bi-cpu"></i> polyglot·studio</div>
+        <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
+        <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
+        <button class="download-btn" onclick="ui.downloadProject()"><i class="bi bi-download"></i> download ZIP</button>
+        <button id="splitBtn" class="split-btn" onclick="ui.toggleSplitMode()"><i class="bi bi-layout-split"></i> split view</button>
+        <button class="run-btn" id="runButton" onclick="runner.runFull()"><i class="bi bi-play-fill"></i> run (full output)</button>
     </div>
 
     <div class="workspace">
-        <!-- LEFT: EDITOR (XML) -->
-        <div id="editorZone" class="editor-zone">
-            <div class="tabs-row" id="tabsContainer">
-                <div class="tab active">activity_main.xml <span class="close-tab" style="visibility:hidden;">&times;</span></div>
+        <!-- FILE EXPLORER (with tree lines) -->
+        <div class="file-sidebar">
+            <div class="sidebar-header">
+                <span>EXPLORER</span>
+                <div class="sidebar-actions">
+                    <i class="bi bi-arrow-repeat" onclick="ui.refreshTree()"></i>
+                    <i class="bi bi-upload" onclick="ui.uploadFile()"></i>
+                </div>
             </div>
-            <div id="editor"></div>
-            <div class="status-line">
-                <span id="lintStatus"><i class="bi bi-check-circle-fill text-success"></i> xml ready</span>
-                <span id="saveStatus">Android Studio style · live preview</span>
+            <input type="file" id="fileUpload" multiple style="display:none;" onchange="ui.handleFileUpload(this.files)">
+            <ul id="fileTree"></ul>
+            <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
+                <i class="bi bi-cloud-upload"></i> drop or click
             </div>
         </div>
 
-        <!-- RIGHT: DESIGN PREVIEW (always visible, like design mode) -->
-        <div class="design-panel">
-            <div class="design-header">
-                <i class="bi bi-phone"></i> Pixel 4 · API 30
-                <span style="margin-left:auto;"><i class="bi bi-arrow-repeat"></i> live update</span>
-            </div>
-            <div class="device-frame">
-                <div class="android-screen">
-                    <div class="status-bar">
-                        <span>10:25</span>
-                        <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
-                    </div>
-                    <div id="androidContent" class="app-content">
-                        <!-- widgets generated from XML will appear here -->
-                        <div class="preview-widget textview" style="font-size:24px; font-weight:bold;">Hello, Android</div>
-                        <div class="preview-widget button">CLICK ME</div>
-                        <div class="preview-widget edittext" contenteditable="false">Type here...</div>
-                    </div>
+        <!-- MAIN DYNAMIC AREA (editor + output) -->
+        <div id="mainArea" style="flex:1; display: flex;">
+            <!-- EDITOR ZONE (always present) -->
+            <div id="editorZone" class="editor-zone">
+                <div class="tabs-row" id="tabsContainer"></div>
+                <div id="editor"></div>
+                <div class="status-line">
+                    <span id="lintStatus"><i class="bi bi-check-circle-fill"></i> ready</span>
+                    <span id="saveStatus"></span>
                 </div>
             </div>
-            <div class="status-line" style="border-top:1px solid #3c3c3c; border-left:none;">
-                <span><i class="bi bi-layout-three-columns"></i> design mode</span>
-                <span>XML → view sync</span>
+            <!-- OUTPUT ZONE (dynamic: can be design, preview, terminal) -->
+            <div id="outputZone" class="output-panel">
+                <div class="output-header">
+                    <span id="tabDesign" onclick="ui.switchOutputTab('design')">android design</span>
+                    <span id="tabPreview" onclick="ui.switchOutputTab('preview')">web preview</span>
+                    <span id="tabTerminal" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
+                </div>
+                <!-- Android design panel (visible when chosen) -->
+                <div id="designPanel" class="design-preview" style="display: none;">
+                    <div class="device-frame">
+                        <div class="android-screen">
+                            <div class="status-bar"><span>10:25</span><span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span></div>
+                            <div id="androidContent" class="app-content"><!-- injected by xml parser --></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Web preview iframe -->
+                <iframe id="previewPanel" style="display: none;"></iframe>
+                <!-- Terminal panel -->
+                <div id="terminalPanel" class="terminal">ready · use run button or split</div>
             </div>
         </div>
     </div>
 
-    <script>
-        // ---------- ACE EDITOR SETUP ----------
-        let editor;
-        let previewTimeout;
+    <!-- context & modals -->
+    <div id="contextMenu" class="context-menu">...</div>
+    <div class="modal-bg" id="inputModal">...</div>
 
+    <script>
+        // ---------- VIRTUAL FS ----------
+        const fs = {
+            structure: {
+                'layout': { type: 'folder', children: {
+                    'activity_main.xml': { type: 'file', content: `<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"\n    android:layout_width="match_parent"\n    android:layout_height="match_parent"\n    android:orientation="vertical"\n    android:padding="16dp">\n\n    <TextView\n        android:layout_width="wrap_content"\n        android:layout_height="wrap_content"\n        android:text="Hello XML"\n        android:textSize="24sp"\n        android:textColor="#2196F3"/>\n\n    <Button\n        android:layout_width="match_parent"\n        android:layout_height="wrap_content"\n        android:text="CLICK ME"/>\n\n</LinearLayout>` }
+                }},
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>Hello World</h1>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+                'style.css': { type: 'file', content: 'body { background: #1e1e1e; color: #3ddc84; }' },
+                'script.js': { type: 'file', content: 'console.log("js running");\nalert("hello from js");' },
+                'app.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>React {c}</h1><button onClick={()=>setC(c+1)}>+</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
+                'main.py': { type: 'file', content: 'print("hello python")\nfor i in range(3):\n    print(f"line {i}")' },
+                'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice");\nSELECT * FROM users;' },
+                'js': { type: 'folder', children: {
+                    'lib.js': { type: 'file', content: '// utility lib\nexport const sum = (a,b) => a+b;' }
+                }},
+                'components': { type: 'folder', children: {} }
+            },
+            getNode(pathArr) {
+                let cur = this.structure;
+                for (let i = 0; i < pathArr.length; i++) {
+                    if (!cur[pathArr[i]]) return null;
+                    if (i === pathArr.length - 1) return cur[pathArr[i]];
+                    cur = cur[pathArr[i]].children;
+                }
+                return cur;
+            },
+            saveFile(pathStr, content) {
+                const parts = pathStr.split('/');
+                const name = parts.pop();
+                let parent = this.structure;
+                parts.forEach(p => parent = parent[p].children);
+                if (parent[name]) parent[name].content = content;
+            },
+            moveItem(oldPath, newParentPath) {
+                const oldParts = oldPath.split('/'); const name = oldParts.pop();
+                let oldParent = this.structure; oldParts.forEach(p => oldParent = oldParent[p].children);
+                const item = oldParent[name]; if (!item) return false;
+                delete oldParent[name];
+                let newParent = this.structure;
+                if (newParentPath) { const newParts = newParentPath.split('/'); newParts.forEach(p => newParent = newParent[p].children); }
+                newParent[name] = item;
+                // update tabs
+                state.openTabs = state.openTabs.map(tab => {
+                    if (tab === oldPath) return newParentPath ? `${newParentPath}/${name}` : name;
+                    if (tab.startsWith(oldPath + '/')) return tab.replace(oldPath, newParentPath ? `${newParentPath}/${name}` : name);
+                    return tab;
+                });
+                if (state.activeFile === oldPath) state.activeFile = newParentPath ? `${newParentPath}/${name}` : name;
+                return true;
+            }
+        };
+
+        const state = {
+            openTabs: ['layout/activity_main.xml', 'index.html'],
+            activeFile: 'layout/activity_main.xml',
+            db: null,
+            splitActive: false,
+            currentOutputTab: 'terminal' // design, preview, terminal
+        };
+
+        let editor, saveTimeout;
         window.onload = () => {
             editor = ace.edit('editor');
             editor.setTheme('ace/theme/tomorrow_night');
-            editor.session.setMode('ace/mode/xml');  // Android layouts are XML
+            editor.session.setMode('ace/mode/xml');
             ace.require('ace/ext/language_tools');
-            editor.setOptions({
-                enableBasicAutocompletion: true,
-                enableLiveAutocompletion: true,
-                fontSize: '14px'
-            });
+            editor.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, fontSize: '14px' });
 
-            // Initial Android XML sample
-            const initialXml = `<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Welcome to Android Studio"
-        android:textSize="24sp"
-        android:textColor="#2196F3"
-        android:layout_marginBottom="16dp"/>
-
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter your name"
-        android:padding="12dp"
-        android:background="#FFFFFF"
-        android:layout_marginBottom="16dp"/>
-
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="SAY HELLO"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"/>
-
-    <ImageView
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="center_horizontal"
-        android:src="@drawable/ic_launcher"
-        android:layout_marginTop="24dp"
-        android:background="#E0E0E0"
-        android:scaleType="centerInside"/>
-
-</LinearLayout>`;
-
-            editor.setValue(initialXml, -1);
-            
-            // Trigger preview on any change (debounced)
             editor.session.on('change', () => {
-                clearTimeout(previewTimeout);
-                previewTimeout = setTimeout(() => {
-                    updateAndroidPreview();
-                }, 300);  // 300ms debounce feels responsive
+                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
+                if (state.splitActive) {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => {
+                        if (state.activeFile.endsWith('.xml')) updateAndroidPreview();
+                        else runner.runLivePreview();
+                    }, 400);
+                }
             });
 
-            // Initial preview
-            updateAndroidPreview();
+            ui.refreshTree();
+            ui.openFile('layout/activity_main.xml', 'activity_main.xml');
+            updateAndroidPreview(); // initial
         };
 
-        // ---------- LIVE XML → ANDROID PREVIEW ----------
+        // ---------- UI with tree lines (|-- style) ----------
+        const ui = {
+            refreshTree() { document.getElementById('fileTree').innerHTML = ''; this.renderLevel(fs.structure, document.getElementById('fileTree'), '', ''); },
+            renderLevel(node, parentEl, pathPrefix, indentStr) {
+                const entries = Object.keys(node).sort((a,b) => (node[a].type !== node[b].type) ? (node[a].type==='folder'?-1:1) : a.localeCompare(b));
+                entries.forEach((name, idx) => {
+                    const item = node[name];
+                    const fullPath = pathPrefix ? pathPrefix + '/' + name : name;
+                    const isLast = idx === entries.length - 1;
+                    const li = document.createElement('li');
+                    const prefix = indentStr + (isLast ? '└── ' : '├── ');
+                    
+                    if (item.type === 'folder') {
+                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="folder" style="padding-left:4px" draggable="true">
+                            <span class="prefix-tree">${prefix}</span>
+                            <i class="bi bi-chevron-down folder-chevron" style="font-size:10px;"></i>
+                            <i class="bi bi-folder-fill"></i> ${name}
+                        </div><ul class="tree-children open" data-parent="${fullPath}"></ul>`;
+                        const childUl = li.querySelector('ul');
+                        const nextIndent = indentStr + (isLast ? '    ' : '│   ');
+                        this.renderLevel(item.children, childUl, fullPath, nextIndent);
+                        const div = li.querySelector('.tree-item');
+                        div.onclick = (e) => { e.stopPropagation(); childUl.classList.toggle('open'); const chev = div.querySelector('.bi-chevron-down'); chev.style.transform = childUl.classList.contains('open')?'rotate(0deg)':'rotate(-90deg)'; };
+                        this.addDragDrop(div, fullPath, true);
+                    } else {
+                        li.innerHTML = `<div class="tree-item" data-path="${fullPath}" data-type="file" style="padding-left:4px" draggable="true">
+                            <span class="prefix-tree">${prefix}</span>
+                            <i class="${this.iconFor(name)}"></i> ${name}
+                        </div>`;
+                        const div = li.querySelector('.tree-item');
+                        div.onclick = () => this.openFile(fullPath, name);
+                        this.addDragDrop(div, fullPath, false);
+                    }
+                    li.querySelector('.tree-item').oncontextmenu = (e) => { e.preventDefault(); this.showContextMenu(e, fullPath, item.type); };
+                    parentEl.appendChild(li);
+                });
+            },
+            addDragDrop(el, path, isFolder) {
+                el.draggable = true;
+                el.ondragstart = (e) => { e.dataTransfer.setData('text/plain', path); el.classList.add('dragging'); };
+                el.ondragend = () => el.classList.remove('dragging');
+                el.ondragover = (e) => e.preventDefault();
+                el.ondrop = (e) => {
+                    e.preventDefault(); el.classList.remove('drag-over');
+                    const src = e.dataTransfer.getData('text/plain');
+                    if (src && src !== path) {
+                        if (isFolder && confirm(`Move "${src}" to "${path}"?`)) {
+                            if (fs.moveItem(src, path)) { this.refreshTree(); this.refreshTabs(); }
+                        } else if (!isFolder) { /* ignore dropping onto file */ }
+                    }
+                };
+                if (isFolder) {
+                    el.ondragover = (e) => { e.preventDefault(); el.classList.add('drag-over'); };
+                    el.ondragleave = () => el.classList.remove('drag-over');
+                }
+            },
+            iconFor(name) {
+                if (name.endsWith('.xml')) return 'bi bi-filetype-xml';
+                if (name.endsWith('.html')) return 'bi bi-filetype-html';
+                if (name.endsWith('.css')) return 'bi bi-filetype-css';
+                if (name.endsWith('.js')) return 'bi bi-filetype-js';
+                if (name.endsWith('.jsx')) return 'bi bi-filetype-jsx';
+                if (name.endsWith('.py')) return 'bi bi-filetype-py';
+                if (name.endsWith('.sql')) return 'bi bi-database';
+                return 'bi bi-file-earmark';
+            },
+            openFile(path, name) {
+                if (!state.openTabs.includes(path)) state.openTabs.push(path);
+                state.activeFile = path;
+                const node = fs.getNode(path.split('/'));
+                if (node) {
+                    editor.setValue(node.content, -1);
+                    const ext = name.split('.').pop();
+                    const mode = { xml:'ace/mode/xml', html:'ace/mode/html', css:'ace/mode/css', js:'ace/mode/javascript', jsx:'ace/mode/jsx', py:'ace/mode/python', sql:'ace/mode/sql' }[ext] || 'ace/mode/text';
+                    editor.session.setMode(mode);
+                    this.highlightActive(path);
+                    this.refreshTabs();
+                    if (state.splitActive) {
+                        if (ext==='xml') updateAndroidPreview();
+                        else runner.runLivePreview();
+                    }
+                }
+            },
+            refreshTabs() { /* ... (similar to before) ... */
+                const cont = document.getElementById('tabsContainer'); cont.innerHTML = '';
+                state.openTabs.forEach(p => {
+                    const name = p.split('/').pop();
+                    const active = p === state.activeFile ? 'active' : '';
+                    const tab = document.createElement('div');
+                    tab.className = `tab ${active}`;
+                    tab.innerHTML = `${name} <span class="close-tab" onclick="event.stopPropagation(); ui.closeTab('${p}')">&times;</span>`;
+                    tab.onclick = () => this.openFile(p, name);
+                    cont.appendChild(tab);
+                });
+            },
+            closeTab(path) { /* ... */ 
+                state.openTabs = state.openTabs.filter(p=>p!==path);
+                if(state.activeFile===path) { state.activeFile=state.openTabs[0]||null; if(state.activeFile) { const node = fs.getNode(state.activeFile.split('/')); editor.setValue(node.content,-1); } else editor.setValue(''); }
+                this.refreshTabs();
+            },
+            highlightActive(path) { document.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('selected')); const sel = document.querySelector(`.tree-item[data-path="${path}"]`); if(sel) sel.classList.add('selected'); },
+            showContextMenu(e, path, type) { const m=document.getElementById('contextMenu'); m.style.left=e.pageX+'px'; m.style.top=e.pageY+'px'; m.style.display='block'; m.dataset.path=path; m.dataset.type=type; },
+            handleFileUpload(files) { /* ... */ Array.from(files).forEach(f=>{ const r=new FileReader(); r.onload=e=>{ fs.structure[f.name]={type:'file',content:e.target.result}; this.refreshTree(); }; r.readAsText(f); }); },
+            uploadFile() { document.getElementById('fileUpload').click(); },
+            async downloadProject() { /* ... */ const zip=new JSZip(); function add(node, zipFolder){ Object.keys(node).forEach(n=>{ const it=node[n]; if(it.type==='folder'){ const sub=zipFolder.folder(n); add(it.children,sub); } else zipFolder.file(n, it.content); }); } add(fs.structure, zip); const blob=await zip.generateAsync({type:'blob'}); saveAs(blob,'project.zip'); },
+            createNewFile() { this.modalPurpose='file'; this.openModal('new file','file.ext'); },
+            createNewFolder() { this.modalPurpose='folder'; this.openModal('new folder','folder'); },
+            renameItem() { this.modalPurpose='rename'; this.renameOldPath=document.getElementById('contextMenu').dataset.path; this.openModal('rename', this.renameOldPath?.split('/').pop()); },
+            deleteItem() { /* ... */
+                const path = document.getElementById('contextMenu').dataset.path; if(!path) return;
+                const parts=path.split('/'); const name=parts.pop(); let parent=fs.structure; parts.forEach(p=>parent=parent[p].children); delete parent[name];
+                if(state.openTabs.includes(path)) this.closeTab(path); this.refreshTree();
+            },
+            modalConfirm() { /* minimal */ this.closeModal(); this.refreshTree(); },
+            openModal(title,placeholder) { document.getElementById('modalTitle').innerText=title; document.getElementById('modalInput').placeholder=placeholder; document.getElementById('modalInput').value=''; document.getElementById('inputModal').style.display='flex'; },
+            closeModal() { document.getElementById('inputModal').style.display='none'; },
+            toggleSplitMode() {
+                state.splitActive = !state.splitActive;
+                document.getElementById('splitBtn').classList.toggle('active', state.splitActive);
+                if (state.splitActive) {
+                    if (state.activeFile?.endsWith('.xml')) { this.switchOutputTab('design'); updateAndroidPreview(); }
+                    else { this.switchOutputTab('preview'); runner.runLivePreview(); }
+                }
+            },
+            switchOutputTab(tab) {
+                state.currentOutputTab = tab;
+                ['designPanel','previewPanel','terminalPanel'].forEach(id => document.getElementById(id).style.display = 'none');
+                document.getElementById('tabDesign').classList.remove('active-tab');
+                document.getElementById('tabPreview').classList.remove('active-tab');
+                document.getElementById('tabTerminal').classList.remove('active-tab');
+                if (tab === 'design') { document.getElementById('designPanel').style.display = 'flex'; document.getElementById('tabDesign').classList.add('active-tab'); updateAndroidPreview(); }
+                else if (tab === 'preview') { document.getElementById('previewPanel').style.display = 'flex'; document.getElementById('tabPreview').classList.add('active-tab'); }
+                else { document.getElementById('terminalPanel').style.display = 'block'; document.getElementById('tabTerminal').classList.add('active-tab'); }
+            }
+        };
+
+        // ---------- Android XML preview ----------
         function updateAndroidPreview() {
+            if (!state.activeFile?.endsWith('.xml')) return;
             const xml = editor.getValue();
             const container = document.getElementById('androidContent');
-            container.innerHTML = '';  // clear previous
-
+            container.innerHTML = '';
             try {
-                // Super simple XML parser (just for demo) – we manually parse some tags
-                // In a real tool you'd use a proper parser, but this shows the concept.
-                const lines = xml.split('\n');
-                let currentLayout = null;
-                let layoutStack = [];  // for nested layouts (simplified)
-                
-                // Very naive tag extraction – only for demo purposes.
-                // It extracts tags like <TextView ... /> or <Button ... > ... </Button>
-                const tagRegex = /<(\w+)([^>]*?)(\/?>|<\/\1>)/gs;
-                let match;
-                // We'll collect root views and approximate.
-                // For simplicity we just find all self-closing or open tags and render.
-                // This is NOT a full XML parser, just a demo to simulate Android Studio feel.
-                
-                // Reset container, then parse
-                const tempDiv = document.createElement('div');
-                let insideTag = false;
-                let currentTagName = '';
-                
-                // Better approach: use DOMParser to parse XML (browser built-in)
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xml, 'text/xml');
-                
-                // Check for parsing errors
-                const parseError = xmlDoc.getElementsByTagName('parsererror');
-                if (parseError.length > 0) {
-                    container.innerHTML = `<div style="color:#f85149; background:#2d2d2d; padding:12px; border-radius:8px;">
-                        <i class="bi bi-exclamation-triangle-fill"></i> XML parsing error. Check syntax.
-                    </div>`;
-                    return;
-                }
-                
-                // Recursive function to render Android views from XML nodes
-                function renderNode(node, parentElement) {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        // Ignore whitespace
-                        if (node.textContent.trim()) {
-                            // For text inside like <TextView>some text</TextView>
-                            const textSpan = document.createElement('span');
-                            textSpan.className = 'preview-widget textview';
-                            textSpan.style.padding = '4px 0';
-                            textSpan.innerText = node.textContent.trim();
-                            parentElement.appendChild(textSpan);
-                        }
-                        return;
-                    }
-                    
-                    if (node.nodeType !== Node.ELEMENT_NODE) return;
-                    
-                    const tagName = node.tagName.toLowerCase();
-                    const attrs = {};
-                    for (let attr of node.attributes) {
-                        attrs[attr.name] = attr.value;
-                    }
-                    
-                    // Create preview element based on tag
-                    let el;
-                    if (tagName === 'textview') {
-                        el = document.createElement('div');
-                        el.className = 'preview-widget textview';
-                        el.innerText = attrs['android:text'] || 'TextView';
+                if (xmlDoc.getElementsByTagName('parsererror').length) throw new Error('parse error');
+                function render(node, parent) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const tag = node.tagName.toLowerCase();
+                        const attrs = {}; for (let a of node.attributes) attrs[a.name] = a.value;
+                        let el;
+                        if (tag === 'textview') { el = document.createElement('div'); el.className='preview-widget textview'; el.innerText = attrs['android:text'] || 'TextView'; }
+                        else if (tag === 'button') { el = document.createElement('div'); el.className='preview-widget button'; el.innerText = attrs['android:text'] || 'Button'; }
+                        else if (tag === 'edittext') { el = document.createElement('div'); el.className='preview-widget edittext'; el.innerText = attrs['android:hint'] || 'edit'; }
+                        else if (tag === 'imageview') { el = document.createElement('div'); el.className='preview-widget imageview'; el.innerHTML = '🖼️'; }
+                        else if (tag === 'linearlayout') { el = document.createElement('div'); el.className='preview-widget linearlayout'; if(attrs['android:orientation']==='horizontal') el.style.display='flex'; }
+                        else { el = document.createElement('div'); el.innerText = `<${tag}>`; }
                         if (attrs['android:textSize']) el.style.fontSize = attrs['android:textSize'];
                         if (attrs['android:textColor']) el.style.color = attrs['android:textColor'];
-                        if (attrs['android:layout_marginBottom']) el.style.marginBottom = attrs['android:layout_marginBottom'];
-                    }
-                    else if (tagName === 'button') {
-                        el = document.createElement('div');
-                        el.className = 'preview-widget button';
-                        el.innerText = attrs['android:text'] || 'Button';
-                        if (attrs['android:backgroundTint']) el.style.background = attrs['android:backgroundTint'];
-                        if (attrs['android:textColor']) el.style.color = attrs['android:textColor'];
-                        if (attrs['android:layout_marginBottom']) el.style.marginBottom = attrs['android:layout_marginBottom'];
-                    }
-                    else if (tagName === 'edittext') {
-                        el = document.createElement('div');
-                        el.className = 'preview-widget edittext';
-                        el.innerText = attrs['android:text'] || attrs['android:hint'] || 'EditText';
-                        if (attrs['android:hint'] && !attrs['android:text']) {
-                            el.style.color = '#aaa';
-                            el.innerText = attrs['android:hint'];
-                        }
-                        if (attrs['android:background']) el.style.background = attrs['android:background'];
-                    }
-                    else if (tagName === 'imageview') {
-                        el = document.createElement('div');
-                        el.className = 'preview-widget imageview';
-                        el.innerHTML = '🖼️ ' + (attrs['android:src'] || 'image');
-                        if (attrs['android:layout_width'] === 'match_parent') el.style.width = '100%';
-                        if (attrs['android:layout_height']) el.style.height = attrs['android:layout_height'];
-                    }
-                    else if (tagName === 'linearlayout') {
-                        el = document.createElement('div');
-                        el.className = 'preview-widget linearlayout';
-                        if (attrs['android:orientation'] === 'horizontal') {
-                            el.classList.add('horizontal');
-                        }
-                        if (attrs['android:padding']) el.style.padding = attrs['android:padding'];
-                        if (attrs['android:layout_width'] === 'match_parent') el.style.width = '100%';
-                    }
-                    else {
-                        // unknown tag – just a box
-                        el = document.createElement('div');
-                        el.className = 'preview-widget';
-                        el.style.padding = '8px';
-                        el.style.background = '#eaeaea';
-                        el.style.color = '#888';
-                        el.innerText = `<${tagName}> preview`;
-                    }
-                    
-                    // Apply common layout attributes
-                    if (attrs['android:layout_width'] === 'match_parent') el.style.width = '100%';
-                    if (attrs['android:layout_height'] === 'match_parent') el.style.height = '100%';
-                    if (attrs['android:layout_margin']) el.style.margin = attrs['android:layout_margin'];
-                    if (attrs['android:layout_marginBottom']) el.style.marginBottom = attrs['android:layout_marginBottom'];
-                    if (attrs['android:layout_marginTop']) el.style.marginTop = attrs['android:layout_marginTop'];
-                    if (attrs['android:gravity'] === 'center') el.style.textAlign = 'center';
-                    
-                    parentElement.appendChild(el);
-                    
-                    // Process children recursively
-                    for (let child of node.childNodes) {
-                        renderNode(child, el);
+                        parent.appendChild(el);
+                        for (let child of node.childNodes) render(child, el);
                     }
                 }
-                
-                // Start from root element
-                const root = xmlDoc.documentElement;
-                if (root) {
-                    renderNode(root, container);
-                } else {
-                    container.innerHTML = '<div class="preview-widget textview">No root element</div>';
-                }
-                
-                // Add a little note about live updates
-                const note = document.createElement('div');
-                note.style.marginTop = '12px';
-                note.style.fontSize = '11px';
-                note.style.color = '#3ddc84';
-                note.style.textAlign = 'center';
-                note.innerHTML = '<i class="bi bi-lightning-charge"></i> live design · type to update';
-                container.appendChild(note);
-                
-            } catch (e) {
-                container.innerHTML = `<div style="color:#f85149;">Error parsing XML: ${e.message}</div>`;
-            }
+                render(xmlDoc.documentElement, container);
+            } catch (e) { container.innerHTML = '<div style="color:#f85149;">XML error</div>'; }
         }
 
-        // ---------- SIMPLE UI ACTIONS (to mimic studio) ----------
-        const ui = {
-            createNewFile() {
-                const newLayout = `<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="New Layout"
-        android:textSize="20sp"/>
-
-</LinearLayout>`;
-                editor.setValue(newLayout, -1);
-                document.getElementById('saveStatus').innerText = 'new layout created';
-                setTimeout(() => document.getElementById('saveStatus').innerText = 'Android Studio style · live preview', 2000);
+        // ---------- RUNNER (js, py, etc) ----------
+        const runner = {
+            runLivePreview() {
+                if (!state.activeFile) return;
+                const ext = state.activeFile.split('.').pop();
+                if (ext==='html'||ext==='css'||ext==='js') this._webPreview();
+                else if (ext==='jsx') this._reactPreview();
+                else if (ext==='xml') updateAndroidPreview();
             },
-            
-            toggleDesignMode() {
-                // Design mode is always on, but we can simulate a toast
-                document.getElementById('saveStatus').innerText = 'design mode always active';
-                setTimeout(() => document.getElementById('saveStatus').innerText = 'Android Studio style · live preview', 1500);
-            }
+            _webPreview() {
+                let htmlFile = state.activeFile.endsWith('.html') ? state.activeFile : 'index.html';
+                let node = fs.getNode(htmlFile.split('/'));
+                if (!node && fs.structure['index.html']) node = fs.structure['index.html'];
+                if (!node) return;
+                let html = node.content;
+                html = html.replace(/<link[^>]*href=["']([\w\.\/]+\.css)["'][^>]*>/gi, (m, p1) => { let css = fs.getNode(p1.split('/')); return css ? `<style>${css.content}</style>` : m; });
+                html = html.replace(/<script[^>]*src=["']([\w\.\/]+\.js)["'][^>]*><\/script>/gi, (m, p1) => { let js = fs.getNode(p1.split('/')); return js ? `<script>${js.content}<\/script>` : m; });
+                document.getElementById('previewPanel').srcdoc = html;
+            },
+            _reactPreview() {
+                let node = fs.getNode(state.activeFile.split('/'));
+                let doc = `<div id="root"></div><script src="https://unpkg.com/react@18/umd/react.development.js"></script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script><script src="https://unpkg.com/@babel/standalone/babel.min.js"></script><script type="text/babel">${node.content}</script>`;
+                document.getElementById('previewPanel').srcdoc = doc;
+            },
+            runFull() {
+                if (state.activeFile) fs.saveFile(state.activeFile, editor.getValue());
+                if (state.splitActive) ui.toggleSplitMode(); // exit split for full view
+                document.getElementById('outputZone').style.display = 'flex';
+                const ext = state.activeFile.split('.').pop();
+                const node = fs.getNode(state.activeFile.split('/'));
+                ui.switchOutputTab('terminal');
+                document.getElementById('terminalPanel').innerHTML = '';
+                if (ext==='html'||ext==='css'||ext==='js') { this._webPreview(); ui.switchOutputTab('preview'); }
+                else if (ext==='jsx') { this._reactPreview(); ui.switchOutputTab('preview'); }
+                else if (ext==='py') this._runPython(node.content);
+                else if (ext==='sql') this._runSQL(node.content);
+                else if (ext==='xml') { updateAndroidPreview(); ui.switchOutputTab('design'); }
+                else document.getElementById('terminalPanel').innerText = 'cannot run this file type';
+            },
+            async _runPython(code) {
+                Sk.configure({ output: t => this.log(t), read: x => Sk.builtinFiles.files[x], __future__: Sk.python3, python3:true });
+                try { await Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, code, true)); } catch(e){ this.log('Error: '+e, true); }
+            },
+            async _runSQL(sql) {
+                if (!state.db) { const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` }); state.db = new SQL.Database(); }
+                try { let res = state.db.exec(sql); if(!res.length) this.log('done'); else res.forEach(r => { this.log(JSON.stringify(r)); }); } catch(e){ this.log(e.message, true); }
+            },
+            log(msg, isErr) { let d = document.createElement('div'); d.innerText = msg; if(isErr) d.className='err'; document.getElementById('terminalPanel').appendChild(d); }
         };
-
-        // Minor: update status on save shortcut (Ctrl+S)
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                document.getElementById('saveStatus').innerText = 'layout synced ✓';
-                setTimeout(() => document.getElementById('saveStatus').innerText = 'Android Studio style · live preview', 1500);
-            }
-        });
+        document.addEventListener('click', () => document.getElementById('contextMenu').style.display='none');
     </script>
 </body>
 </html>
