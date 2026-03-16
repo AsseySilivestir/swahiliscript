@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pure IDE · errors + autocomplete</title>
-    <!-- Bootstrap Icons (lightweight) -->
+    <title>pure IDE · Java + Python + JS + SQL</title>
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- ACE Editor core + autocomplete + lint tools -->
+    <!-- ACE Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
-    <!-- ACE lint extensions -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-error_marker.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-html.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-css.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-javascript.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-python.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/worker-javascript.js"></script>
-    <!-- Skulpt (python) & SQL.js & Babel for React -->
+    <!-- Skulpt (Python) -->
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+    <!-- Babel & React -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- SQL.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <!-- CheerpJ (Java in browser) -->
+    <script src="https://cjrtnc.leaningtech.com/3.1/cj3loader.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -34,7 +33,6 @@
             color: #e6edf3;
             overflow: hidden;
         }
-        /* title bar */
         .titlebar {
             background: #161b22;
             padding: 0.4rem 1rem;
@@ -71,13 +69,11 @@
         }
         .titlebar .run-btn:hover { background: #2ea043; }
 
-        /* WORKSPACE */
         .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
-        /* file sidebar */
         .file-sidebar {
             width: 240px;
             background: #0d1117;
@@ -121,7 +117,6 @@
         .tree-children { display: none; padding-left: 1.2rem; }
         .tree-children.open { display: block; }
 
-        /* EDITOR ZONE */
         .editor-zone {
             flex: 1;
             display: flex;
@@ -159,14 +154,8 @@
             opacity: 0.5;
         }
         .tab .close-tab:hover { opacity: 1; color: #f85149; }
-        #editor { 
-            flex: 1; 
-            width: 100%; 
-            font-size: 14px;
-            /* ace gutter already shows errors */
-        }
+        #editor { flex: 1; width: 100%; font-size: 14px; }
 
-        /* OUTPUT PANEL */
         .output-panel {
             flex: 1;
             display: flex;
@@ -213,7 +202,6 @@
 
         .hidden { display: none !important; }
 
-        /* context menu */
         .context-menu {
             position: fixed;
             background: #21262d;
@@ -262,8 +250,6 @@
         }
         .btn-primary { background: #238636; color: white; }
         .btn-primary:hover { background: #2ea043; }
-
-        /* small annotation */
         .status-line {
             background: #161b22;
             padding: 2px 12px;
@@ -271,12 +257,19 @@
             color: #8b949e;
             border-top: 1px solid #30363d;
         }
-        .status-line i { margin-right: 4px; }
+        .java-badge {
+            background: #b07219;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-bug"></i> pure·ide +lint</div>
+        <div class="brand"><i class="bi bi-cpu"></i> pure·ide <span class="java-badge">Java Ready</span></div>
         <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
         <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
         <button class="run-btn" id="runButton" onclick="runner.runAndHideEditor()"><i class="bi bi-play-fill"></i> run → replace editor</button>
@@ -292,21 +285,19 @@
         </div>
 
         <div id="mainDynamicArea" style="flex:1; display: flex;">
-            <!-- EDITOR ZONE -->
             <div id="editorZone" class="editor-zone">
                 <div class="tabs-row" id="tabsContainer"></div>
                 <div id="editor"></div>
                 <div class="status-line" id="lintStatus">
-                    <i class="bi bi-check-circle-fill text-success"></i> no errors
+                    <i class="bi bi-check-circle-fill text-success"></i> ready
                 </div>
             </div>
-            <!-- OUTPUT ZONE (hidden by default) -->
             <div id="outputZone" class="output-panel hidden">
                 <div class="output-header">
                     <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
                     <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <div id="terminalPanel" class="terminal">ready · errors will show with line numbers</div>
+                <div id="terminalPanel" class="terminal">ready · java support loaded (cheerpj)</div>
                 <iframe id="previewPanel" style="display: none;"></iframe>
             </div>
         </div>
@@ -330,13 +321,15 @@
     </div>
 
     <script>
-        // ---------- VIRTUAL FS ----------
+        // ---------- VIRTUAL FS with Java examples ----------
         const fs = {
             structure: {
-                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-                'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; }\nbutton { background: #238636; }\n/* intentional error: missing brace */\n.card { color: red;' },
-                'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");\n// typo below (lint will catch)\nlet x = 42;\nx = y + 5;' },
-                'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\n\ngreet("world")\n# indent error (python will show line)\n  print("bad indent")' },
+                'Hello.java': { type: 'file', content: `public class Hello {\n    public static void main(String[] args) {\n        System.out.println("Hello from Java!");\n        // Calculate sum\n        int sum = 0;\n        for (int i = 1; i <= 5; i++) {\n            sum += i;\n        }\n        System.out.println("Sum 1..5 = " + sum);\n    }\n}` },
+                'Calculator.java': { type: 'file', content: `import java.util.Scanner;\n\npublic class Calculator {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        System.out.print("Enter first number: ");\n        double a = sc.nextDouble();\n        System.out.print("Enter second number: ");\n        double b = sc.nextDouble();\n        System.out.println("Sum: " + (a + b));\n        System.out.println("Product: " + (a * b));\n        sc.close();\n    }\n}` },
+                'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+                'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; }\nbutton { background: #238636; }' },
+                'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");' },
+                'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\n\ngreet("world")\nfor i in range(3):\n    print(f"count {i}")' },
                 'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
                 'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
                 'lib': { type: 'folder', children: {} }
@@ -359,19 +352,34 @@
             }
         };
 
-        // ----- state -----
         const state = {
-            openTabs: ['index.html'],
-            activeFile: 'index.html',
+            openTabs: ['Hello.java'],
+            activeFile: 'Hello.java',
             db: null,
-            annotations: []   // store current editor annotations
+            annotations: [],
+            cheerpj: null
         };
 
         let editor;
+
+        // Initialize CheerpJ for Java
+        async function initCheerpJ() {
+            if (!state.cheerpj) {
+                try {
+                    state.cheerpj = await cheerpjInit();
+                    runner.log('CheerpJ (Java) initialized', false, true);
+                } catch (e) {
+                    console.error('CheerpJ init failed:', e);
+                    runner.log('Java runtime init failed - some features may be limited', true);
+                }
+            }
+        }
+        initCheerpJ();
+
         window.onload = () => {
             editor = ace.edit('editor');
             editor.setTheme('ace/theme/tomorrow_night');
-            editor.session.setMode('ace/mode/html');
+            editor.session.setMode('ace/mode/java');
             ace.require('ace/ext/language_tools');
             editor.setOptions({
                 enableBasicAutocompletion: true,
@@ -380,7 +388,6 @@
                 fontSize: '14px'
             });
 
-            // set up lint change tracking
             editor.session.on('changeAnnotation', function() {
                 const annotations = editor.session.getAnnotations();
                 state.annotations = annotations;
@@ -388,7 +395,7 @@
             });
 
             ui.refreshTree();
-            ui.openFile('index.html', 'index.html');
+            ui.openFile('Hello.java', 'Hello.java');
         };
 
         function updateLintStatus(ann) {
@@ -396,7 +403,7 @@
             const errors = ann.filter(a => a.type === 'error');
             const warnings = ann.filter(a => a.type === 'warning');
             if (errors.length) {
-                el.innerHTML = `<i class="bi bi-x-circle-fill text-danger"></i> ${errors.length} error(s) · line ${errors[0].row}`;
+                el.innerHTML = `<i class="bi bi-x-circle-fill text-danger"></i> ${errors.length} error(s) · line ${errors[0].row + 1}`;
             } else if (warnings.length) {
                 el.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-warning"></i> ${warnings.length} warning(s)`;
             } else {
@@ -404,7 +411,6 @@
             }
         }
 
-        // ----- UI object (enhanced with error display) -----
         const ui = {
             refreshTree() {
                 const container = document.getElementById('fileTree');
@@ -447,6 +453,7 @@
                 });
             },
             iconFor(name) {
+                if (name.endsWith('.java')) return 'bi bi-filetype-java';
                 if (name.endsWith('.html')) return 'bi bi-filetype-html';
                 if (name.endsWith('.css')) return 'bi bi-filetype-css';
                 if (name.endsWith('.js')) return 'bi bi-filetype-js';
@@ -456,7 +463,6 @@
                 return 'bi bi-file-earmark';
             },
             openFile(path, name) {
-                // show editor, hide output
                 document.getElementById('editorZone').classList.remove('hidden');
                 document.getElementById('outputZone').classList.add('hidden');
 
@@ -466,7 +472,6 @@
                 if (node) {
                     editor.setValue(node.content, -1);
                     editor.session.setMode(this.aceMode(name));
-                    // force lint refresh
                     editor.session.clearAnnotations();
                     this.highlightActive(path);
                     this.refreshTabs();
@@ -474,7 +479,15 @@
             },
             aceMode(name) {
                 const ext = name.split('.').pop();
-                return { html:'ace/mode/html', css:'ace/mode/css', js:'ace/mode/javascript', jsx:'ace/mode/jsx', py:'ace/mode/python', sql:'ace/mode/sql' }[ext] || 'ace/mode/text';
+                return { 
+                    java:'ace/mode/java',
+                    html:'ace/mode/html', 
+                    css:'ace/mode/css', 
+                    js:'ace/mode/javascript', 
+                    jsx:'ace/mode/jsx', 
+                    py:'ace/mode/python', 
+                    sql:'ace/mode/sql' 
+                }[ext] || 'ace/mode/text';
             },
             refreshTabs() {
                 const cont = document.getElementById('tabsContainer');
@@ -592,7 +605,7 @@
             }
         };
 
-        // ----- runner with enhanced error display (line numbers) -----
+        // ----- RUNNER with Java support -----
         const runner = {
             async runAndHideEditor() {
                 if (state.activeFile) {
@@ -600,10 +613,12 @@
                 }
                 document.getElementById('editorZone').classList.add('hidden');
                 document.getElementById('outputZone').classList.remove('hidden');
+                
                 if (!state.activeFile) {
                     this.log('no file open', false, true);
                     return;
                 }
+                
                 const ext = state.activeFile.split('.').pop();
                 const node = fs.getNode(state.activeFile.split('/'));
                 if (!node) return;
@@ -612,22 +627,87 @@
                 ui.switchOutputTab('terminal');
 
                 try {
-                    if (ext === 'html' || ext === 'css' || ext === 'js') this.runWeb();
-                    else if (ext === 'jsx') this.runReact();
-                    else if (ext === 'py') await this.runPython(node.content);
-                    else if (ext === 'sql') await this.runSQL(node.content);
-                    else this.log('cannot run this file type', true);
+                    if (ext === 'java') {
+                        await this.runJava(node.content, state.activeFile);
+                    } else if (ext === 'html' || ext === 'css' || ext === 'js') {
+                        this.runWeb();
+                    } else if (ext === 'jsx') {
+                        this.runReact();
+                    } else if (ext === 'py') {
+                        await this.runPython(node.content);
+                    } else if (ext === 'sql') {
+                        await this.runSQL(node.content);
+                    } else {
+                        this.log('cannot run this file type', true);
+                    }
                 } catch (e) {
                     this.log(`Runtime error: ${e.message}`, true);
                 }
 
-                // also display any lint errors with line numbers in terminal
                 if (state.annotations.length) {
                     this.log('--- editor diagnostics ---', false, true);
                     state.annotations.forEach(a => {
                         const line = a.row + 1;
                         this.log(`line ${line}: ${a.type} - ${a.text}`, a.type === 'error');
                     });
+                }
+            },
+
+            // Java executor using CheerpJ
+            async runJava(code, filename) {
+                this.log('compiling Java...', false, true);
+                
+                if (!state.cheerpj) {
+                    try {
+                        state.cheerpj = await cheerpjInit();
+                    } catch (e) {
+                        this.log('Java runtime failed to load. Check internet connection.', true);
+                        return;
+                    }
+                }
+
+                // Create virtual filesystem for this compilation
+                const className = filename.replace('.java', '');
+                
+                try {
+                    // Write the Java file to CheerpJ virtual FS
+                    await cheerpjCreateFile(`/${filename}`, code);
+                    
+                    // Compile
+                    const compileResult = await cheerpjRunMain('com.leaningtech.client.Javac', `/${filename}`);
+                    
+                    if (compileResult !== 0) {
+                        this.log('compilation failed (see errors above)', true);
+                        return;
+                    }
+                    
+                    // Run the compiled class
+                    this.log(`running ${className}...`, false, true);
+                    
+                    // Capture stdout
+                    const originalLog = console.log;
+                    const outputs = [];
+                    
+                    // Run and capture output
+                    const runResult = await cheerpjRunMain(className);
+                    
+                    if (runResult !== 0) {
+                        this.log(`program exited with code ${runResult}`, true);
+                    }
+                    
+                    // CheerpJ automatically routes System.out to browser console
+                    // We'll inform user to check console, but also try to provide output
+                    this.log('(Java output appears in browser console)', false, true);
+                    this.log('execution complete', false, true);
+                    
+                } catch (e) {
+                    // Try to extract line number from error
+                    const lineMatch = e.message.match(/line (\d+)/i) || e.message.match(/:(\d+):/);
+                    if (lineMatch) {
+                        this.log(`Java error at line ${lineMatch[1]}: ${e.message}`, true);
+                    } else {
+                        this.log(`Java error: ${e.message}`, true);
+                    }
                 }
             },
 
@@ -675,7 +755,6 @@
                         .then(resolve)
                         .catch(err => {
                             const msg = err.toString();
-                            // extract line number from Skulpt error (simplified)
                             const lineMatch = msg.match(/line (\d+)/i);
                             if (lineMatch) {
                                 this.log(`Python error at line ${lineMatch[1]}: ${msg}`, true);
@@ -704,7 +783,6 @@
                         });
                     }
                 } catch (e) {
-                    // try to extract line number from sql error (simple)
                     const lineMatch = e.message.match(/near line (\d+)/i);
                     if (lineMatch) {
                         this.log(`SQL error at line ${lineMatch[1]}: ${e.message}`, true);
@@ -720,14 +798,12 @@
                 d.innerText = msg;
                 if (isErr) d.className = 'err';
                 else if (isInfo) d.className = 'info';
-                // add line-error class if it's a line-specific message (optional)
                 if (msg.includes('line')) d.classList.add('line-error');
                 el.appendChild(d);
                 el.scrollTop = el.scrollHeight;
             }
         };
 
-        // click outside closes context menu
         document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
     </script>
 </body>
