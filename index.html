@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pure IDE · Kiswahili (KS) + all languages</title>
+    <title>pure IDE · drag files + download ZIP</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- ACE Editor -->
@@ -23,8 +23,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <!-- SQL.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-    <!-- Swahili Script - load from root folder -->
-    <script src="swahili.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -45,7 +43,6 @@
             gap: 1.2rem;
             border-bottom: 1px solid #30363d;
             font-size: 0.9rem;
-            flex-wrap: wrap;
         }
         .titlebar .brand {
             font-weight: 600;
@@ -53,14 +50,6 @@
             letter-spacing: 0.3px;
         }
         .titlebar .brand i { color: #2f81f7; margin-right: 6px; }
-        .titlebar .brand .ks-badge {
-            background: #8b5cf6;
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 12px;
-            margin-left: 8px;
-        }
         .titlebar button {
             background: transparent;
             border: none;
@@ -125,6 +114,7 @@
             min-height: 100px;
         }
         
+        /* Drag and drop styles */
         .tree-item {
             display: flex;
             align-items: center;
@@ -156,6 +146,12 @@
             list-style: none;
         }
         .tree-children.open { display: block; }
+        
+        .drop-indicator {
+            height: 2px;
+            background: #58a6ff;
+            margin: 2px 0;
+        }
 
         .editor-zone {
             flex: 1;
@@ -298,6 +294,7 @@
             border-top: 1px solid #30363d;
         }
 
+        /* Upload area */
         .upload-area {
             border: 2px dashed #30363d;
             border-radius: 6px;
@@ -318,7 +315,7 @@
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-cpu"></i> pure·ide <span class="ks-badge">Kiswahili (.ks)</span></div>
+        <div class="brand"><i class="bi bi-cpu"></i> pure·ide</div>
         <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
         <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
         <button class="download-btn" onclick="ui.downloadProject()"><i class="bi bi-download"></i> download ZIP</button>
@@ -334,6 +331,7 @@
                     <i class="bi bi-upload" onclick="ui.uploadFile()" title="upload file"></i>
                 </div>
             </div>
+            <!-- Hidden file input for upload -->
             <input type="file" id="fileUpload" multiple style="display: none;" onchange="ui.handleFileUpload(this.files)">
             <ul id="fileTree"></ul>
             <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
@@ -355,7 +353,7 @@
                     <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
                     <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <div id="terminalPanel" class="terminal">ready · Kiswahili (KS) interpreter loaded</div>
+                <div id="terminalPanel" class="terminal">ready · drag files to organize</div>
                 <iframe id="previewPanel" style="display: none;"></iframe>
             </div>
         </div>
@@ -379,66 +377,17 @@
     </div>
 
     <script>
-        // ==================== COMPREHENSIVE KISWAHILI (KS) LANGUAGE GUIDE ====================
-        const ksGuide = {
-            extension: '.ks',
-            name: 'Kiswahili',
-            keywords: {
-                'andika': 'print/output',
-                'kazi': 'function',
-                'rudisha': 'return',
-                'ikiwa': 'if',
-                'au': 'else',
-                'wakati': 'while',
-                '$': 'variable prefix'
-            },
-            operators: {
-                '+': 'jumlisha (addition)',
-                '-': 'toa (subtraction)',
-                '*': 'zidisha (multiplication)',
-                '/': 'gawanya (division)',
-                '%': 'modulo (remainder)',
-                '=': 'weka thamani (assignment)',
-                '==': 'sawa na (equal to)',
-                '!=': 'si sawa (not equal)',
-                '>': 'kubwa kuliko (greater than)',
-                '<': 'ndogo kuliko (less than)',
-                '>=': 'kubwa au sawa (greater or equal)',
-                '<=': 'ndogo au sawa (less or equal)'
-            },
-            examples: {
-                hello: 'andika("Salamu, Dunia!");',
-                variables: '$jina = "Ahmed";\n$umri = 25;\nandika("Jina: " + jina);',
-                math: '$a = 10;\n$b = 5;\n$jumla = a + b;\n$tofauti = a - b;\nandika("Jumla: " + jumla);',
-                loop: '$i = 0;\nwakati (i < 5) {\n  andika("Namba: " + i);\n  i = i + 1;\n}',
-                conditional: '$alama = 75;\nikiwa (alama >= 80) {\n  andika("Daraja A");\n} ikiwa (alama >= 60) {\n  andika("Daraja B");\n} au {\n  andika("Daraja C");\n}',
-                function: 'kazi jumlisha:a,b: => {\n  $matokeo = a + b;\n  rudisha matokeo;\n}\n\n$jibu = jumlisha:10,20:;\nandika("Jibu: " + jibu);'
-            }
-        };
-
-        // ==================== VIRTUAL FS with Kiswahili (.ks) examples ====================
+        // ---------- VIRTUAL FS ----------
         const fs = {
             structure: {
-                // Kiswahili examples (.ks extension)
-                'hello.ks': { type: 'file', content: `// Programu yako ya kwanza\nandika("Salamu, Dunia!");\nandika("Hujambo rafiki yangu!");` },
-                'variables.ks': { type: 'file', content: `// Vigezo (Variables)\n$jina = "Ahmed";\n$umri = 25;\n$urefu = 1.75;\n\nandika("Jina: " + jina);\nandika("Umri: " + umri);\nandika("Urefu: " + urefu);` },
-                'math.ks': { type: 'file', content: `// Hesabu (Math)\n$x = 10;\n$y = 20;\n\n$jumla = x + y;\n$tofauti = x - y;\n$zao = x * y;\n$mgawanyiko = x / y;\n$baki = x % y;\n\nandika("Jumla: " + jumla);\nandika("Tofauti: " + tofauti);\nandika("Zao: " + zao);\nandika("Mgawanyiko: " + mgawanyiko);\nandika("Baki: " + baki);` },
-                'loop.ks': { type: 'file', content: `// Mzunguko (Loop)\n$i = 0;\nwakati (i < 5) {\n  andika("Namba: " + i);\n  i = i + 1;\n}\n\n// Mfano mwingine\n$j = 5;\nwakati (j > 0) {\n  andika("Kupungua: " + j);\n  j = j - 1;\n}` },
-                'conditional.ks': { type: 'file', content: `// Masharti (Conditionals)\n$alama = 85;\n\nikiwa (alama >= 80) {\n  andika("Daraja: A - Vizuri sana!");\n} ikiwa (alama >= 60) {\n  andika("Daraja: B - Nzuri");\n} ikiwa (alama >= 40) {\n  andika("Daraja: C - Wasatii");\n} au {\n  andika("Daraja: D - Jaribu tena");\n}\n\n// Mfano wa umri\n$umri = 18;\nikiwa (umri >= 18) {\n  andika("Unaweza kupiga kura");\n} au {\n  andika("Bado ni mtoto");\n}` },
-                'function.ks': { type: 'file', content: `// Kazi (Functions)\nkazi jumlisha:a,b: => {\n  $matokeo = a + b;\n  rudisha matokeo;\n}\n\nkazi zidisha:a,b: => {\n  $matokeo = a * b;\n  rudisha matokeo;\n}\n\nkazi salamu:jina: => {\n  andika("Habari " + jina + "!");\n}\n\n// Tumia kazi\n$n1 = 15;\n$n2 = 25;\n$jibu1 = jumlisha:n1,n2:;\n$jibu2 = zidisha:n1,n2:;\n\nandika("Jumla: " + jibu1);\nandika("Zao: " + jibu2);\nsalamu:"Ali":;` },
-                'fizzbuzz.ks': { type: 'file', content: `// FizzBuzz kwa Kiswahili\n$i = 1;\nwakati (i <= 20) {\n  ikiwa (i % 15 == 0) {\n    andika("FizzBuzz");\n  } ikiwa (i % 3 == 0) {\n    andika("Fizz");\n  } ikiwa (i % 5 == 0) {\n    andika("Buzz");\n  } au {\n    andika(i);\n  }\n  i = i + 1;\n}` },
-                'fibonacci.ks': { type: 'file', content: `// Fibonacci kwa Kiswahili\nkazi fibonacci:n: => {\n  $a = 0;\n  $b = 1;\n  $i = 0;\n  \n  wakati (i < n) {\n    andika(a);\n    $next = a + b;\n    a = b;\n    b = next;\n    i = i + 1;\n  }\n}\n\nandika("Namba 10 za kwanza za Fibonacci:");\nfibonacci:10:;` },
-                
-                // Regular files
                 'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
                 'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; }\nbutton { background: #238636; }' },
                 'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");' },
                 'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\n\ngreet("world")\nfor i in range(3):\n    print(f"count {i}")' },
                 'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
                 'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
-                'README.md': { type: 'file', content: '# Kiswahili Programming Language (.ks)\n\n## Keywords:\n- andika() - output/print\n- kazi - function\n- rudisha - return\n- ikiwa - if\n- au - else\n- wakati - while\n- $ - variable prefix\n\n## Example:\n```\nandika("Salamu, Dunia!");\n```' },
                 'lib': { type: 'folder', children: {} },
-                'projects': { type: 'folder', children: {} }
+                'components': { type: 'folder', children: {} }
             },
             
             getNode(pathArr) {
@@ -459,17 +408,21 @@
                 if (parent[name]) parent[name].content = content;
             },
             
+            // Move file/folder to new location
             moveItem(oldPath, newParentPath) {
                 const oldParts = oldPath.split('/');
                 const name = oldParts.pop();
                 let oldParent = this.structure;
                 oldParts.forEach(p => oldParent = oldParent[p].children);
                 
+                // Get the item to move
                 const item = oldParent[name];
                 if (!item) return false;
                 
+                // Remove from old location
                 delete oldParent[name];
                 
+                // Add to new parent
                 let newParent = this.structure;
                 if (newParentPath) {
                     const newParts = newParentPath.split('/');
@@ -477,6 +430,7 @@
                 }
                 newParent[name] = item;
                 
+                // Update open tabs if needed
                 state.openTabs = state.openTabs.map(tab => {
                     if (tab === oldPath) return newParentPath ? `${newParentPath}/${name}` : name;
                     if (tab.startsWith(oldPath + '/')) {
@@ -493,8 +447,8 @@
         };
 
         const state = {
-            openTabs: ['hello.ks'],
-            activeFile: 'hello.ks',
+            openTabs: ['index.html'],
+            activeFile: 'index.html',
             db: null,
             annotations: [],
             dragSource: null
@@ -505,7 +459,7 @@
         window.onload = () => {
             editor = ace.edit('editor');
             editor.setTheme('ace/theme/tomorrow_night');
-            editor.session.setMode('ace/mode/javascript');
+            editor.session.setMode('ace/mode/html');
             ace.require('ace/ext/language_tools');
             editor.setOptions({
                 enableBasicAutocompletion: true,
@@ -521,20 +475,10 @@
             });
 
             ui.refreshTree();
-            ui.openFile('hello.ks', 'hello.ks');
+            ui.openFile('index.html', 'index.html');
             
+            // Setup drag and drop for entire document
             setupDragAndDrop();
-            
-            // Check if Swahili script loaded
-            setTimeout(() => {
-                if (typeof Interpreter !== 'undefined' && typeof Zap !== 'undefined') {
-                    runner.log('✓ Kiswahili (KS) interpreter loaded successfully!', false, true);
-                    runner.log('  Try running hello.ks or other .ks files', false, true);
-                    runner.log('  Keywords: andika(), kazi, rudisha, ikiwa, au, wakati', false, true);
-                } else {
-                    runner.log('⚠ Kiswahili interpreter not found - make sure swahili.js is in the root folder', true);
-                }
-            }, 500);
         };
 
         function setupDragAndDrop() {
@@ -544,6 +488,7 @@
             
             document.addEventListener('drop', (e) => {
                 e.preventDefault();
+                // Handle file upload from system
                 if (e.dataTransfer.files.length > 0) {
                     ui.handleFileUpload(e.dataTransfer.files);
                 }
@@ -596,6 +541,7 @@
                             chev.style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
                         };
                         
+                        // Make folder droppable
                         div.ondragover = (e) => {
                             e.preventDefault();
                             div.classList.add('drag-over');
@@ -617,6 +563,7 @@
                             }
                         };
                         
+                        // Make folder draggable
                         div.ondragstart = (e) => {
                             e.dataTransfer.setData('text/plain', fullPath);
                             div.classList.add('dragging');
@@ -633,6 +580,7 @@
                         const div = li.querySelector('.tree-item');
                         div.onclick = () => this.openFile(fullPath, name);
                         
+                        // Make file draggable
                         div.ondragstart = (e) => {
                             e.dataTransfer.setData('text/plain', fullPath);
                             div.classList.add('dragging');
@@ -640,6 +588,8 @@
                         div.ondragend = () => {
                             div.classList.remove('dragging');
                         };
+                        
+                        // Files can be dropped onto folders (handled by folder handler)
                     }
                     
                     li.querySelector('.tree-item').oncontextmenu = (e) => {
@@ -652,7 +602,6 @@
             },
             
             iconFor(name) {
-                if (name.endsWith('.ks')) return 'bi bi-file-text-fill text-warning'; // Kiswahili files
                 if (name.endsWith('.html')) return 'bi bi-filetype-html';
                 if (name.endsWith('.css')) return 'bi bi-filetype-css';
                 if (name.endsWith('.js')) return 'bi bi-filetype-js';
@@ -673,12 +622,7 @@
                 const node = fs.getNode(path.split('/'));
                 if (node) {
                     editor.setValue(node.content, -1);
-                    const ext = name.split('.').pop();
-                    if (ext === 'ks') {
-                        editor.session.setMode('ace/mode/javascript');
-                    } else {
-                        editor.session.setMode(this.aceMode(name));
-                    }
+                    editor.session.setMode(this.aceMode(name));
                     editor.session.clearAnnotations();
                     this.highlightActive(path);
                     this.refreshTabs();
@@ -740,18 +684,16 @@
                 menu.dataset.type = type;
             },
             
+            // File upload handling
             handleFileUpload(files) {
                 Array.from(files).forEach(file => {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const content = e.target.result;
+                        // Add to root directory by default
                         fs.structure[file.name] = { type: 'file', content: content };
                         this.refreshTree();
                         runner.log(`Uploaded: ${file.name}`, false, true);
-                        
-                        if (file.name === 'swahili.js') {
-                            runner.log('Note: swahili.js loaded - refresh page to use KS interpreter', false, true);
-                        }
                     };
                     reader.readAsText(file);
                 });
@@ -761,9 +703,11 @@
                 document.getElementById('fileUpload').click();
             },
             
+            // Download project as ZIP
             async downloadProject() {
                 const zip = new JSZip();
                 
+                // Recursively add files to zip
                 function addToZip(node, currentPath, zipFolder) {
                     Object.keys(node).forEach(name => {
                         const item = node[name];
@@ -785,7 +729,7 @@
             
             createNewFile() { 
                 this.modalPurpose = 'file'; 
-                this.openModal('new file', 'filename.ks (or .html, .py, etc.)'); 
+                this.openModal('new file', 'filename.ext'); 
             },
             
             createNewFolder() { 
@@ -874,24 +818,12 @@
                     term.style.display = 'none';
                     prev.style.display = 'flex';
                     document.getElementById('previewTabBtn').classList.add('active-tab');
-                    document.getElementById('previewTabBtn').classList.remove('active-tab');
+                    document.getElementById('terminalTabBtn').classList.remove('active-tab');
                 }
             }
         };
 
-        // ==================== Define Zap class (matches your Node.js version) ====================
-        class Zap {
-            constructor(input) {
-                this.input = input;
-                try {
-                    this.interpreter = new Interpreter(this.input);
-                } catch (e) {
-                    runner.log(`KS Error: ${e.message}`, true);
-                }
-            }
-        }
-
-        // ==================== RUNNER with Kiswahili (KS) support ====================
+        // ----- RUNNER -----
         const runner = {
             async runAndHideEditor() {
                 if (state.activeFile) {
@@ -913,9 +845,7 @@
                 ui.switchOutputTab('terminal');
 
                 try {
-                    if (ext === 'ks') {
-                        await this.runKiswahili(node.content);
-                    } else if (ext === 'html' || ext === 'css' || ext === 'js') {
+                    if (ext === 'html' || ext === 'css' || ext === 'js') {
                         this.runWeb();
                     } else if (ext === 'jsx') {
                         this.runReact();
@@ -936,47 +866,6 @@
                         const line = a.row + 1;
                         this.log(`line ${line}: ${a.type} - ${a.text}`, a.type === 'error');
                     });
-                }
-            },
-
-            async runKiswahili(code) {
-                this.log(` Running Kiswahili (KS) script...', false, true);
-                
-                if (typeof Interpreter === 'undefined') {
-                    this.log('❌ Error: Kiswahili interpreter not found!', true);
-                    this.log('   Make sure swahili.js is in the root folder', false, true);
-                    return;
-                }
-
-                try {
-                    // Capture console.log output
-                    const originalLog = console.log;
-                    const outputs = [];
-                    
-                    console.log = (...args) => {
-                        const msg = args.join(' ');
-                        outputs.push(msg);
-                        this.log(msg);
-                    };
-                    
-                    // Create and run Zap instance
-                    const zap = new Zap(code);
-                    
-                    // Restore console.log
-                    console.log = originalLog;
-                    
-                    if (outputs.length === 0) {
-                        this.log('✓ KS script executed (no output)', false, true);
-                    } else {
-                        this.log('✓ KS script completed', false, true);
-                    }
-                    
-                } catch (e) {
-                    this.log(`KS error: ${e.message}`, true);
-                    const lineMatch = e.message.match(/line (\d+)/i);
-                    if (lineMatch) {
-                        this.log(`  at line ${lineMatch[1]}`, true);
-                    }
                 }
             },
 
