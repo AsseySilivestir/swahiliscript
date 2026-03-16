@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pure IDE · drag files + download ZIP</title>
+    <title>pure IDE · Zap Swahili + all languages</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- ACE Editor -->
@@ -23,6 +23,8 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <!-- SQL.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <!-- Swahili Script - load from root folder -->
+    <script src="swahili.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -43,6 +45,7 @@
             gap: 1.2rem;
             border-bottom: 1px solid #30363d;
             font-size: 0.9rem;
+            flex-wrap: wrap;
         }
         .titlebar .brand {
             font-weight: 600;
@@ -50,6 +53,14 @@
             letter-spacing: 0.3px;
         }
         .titlebar .brand i { color: #2f81f7; margin-right: 6px; }
+        .titlebar .brand .zap-badge {
+            background: #8b5cf6;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
         .titlebar button {
             background: transparent;
             border: none;
@@ -114,7 +125,6 @@
             min-height: 100px;
         }
         
-        /* Drag and drop styles */
         .tree-item {
             display: flex;
             align-items: center;
@@ -146,12 +156,6 @@
             list-style: none;
         }
         .tree-children.open { display: block; }
-        
-        .drop-indicator {
-            height: 2px;
-            background: #58a6ff;
-            margin: 2px 0;
-        }
 
         .editor-zone {
             flex: 1;
@@ -294,7 +298,6 @@
             border-top: 1px solid #30363d;
         }
 
-        /* Upload area */
         .upload-area {
             border: 2px dashed #30363d;
             border-radius: 6px;
@@ -315,7 +318,7 @@
 </head>
 <body>
     <div class="titlebar">
-        <div class="brand"><i class="bi bi-cpu"></i> pure·ide</div>
+        <div class="brand"><i class="bi bi-cpu"></i> pure·ide <span class="zap-badge">Zap</span></div>
         <button onclick="ui.createNewFile()"><i class="bi bi-file-earmark-plus"></i> new file</button>
         <button onclick="ui.createNewFolder()"><i class="bi bi-folder-plus"></i> new folder</button>
         <button class="download-btn" onclick="ui.downloadProject()"><i class="bi bi-download"></i> download ZIP</button>
@@ -331,7 +334,6 @@
                     <i class="bi bi-upload" onclick="ui.uploadFile()" title="upload file"></i>
                 </div>
             </div>
-            <!-- Hidden file input for upload -->
             <input type="file" id="fileUpload" multiple style="display: none;" onchange="ui.handleFileUpload(this.files)">
             <ul id="fileTree"></ul>
             <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
@@ -353,7 +355,7 @@
                     <span id="terminalTabBtn" class="active-tab" onclick="ui.switchOutputTab('terminal')">terminal</span>
                     <span id="previewTabBtn" onclick="ui.switchOutputTab('preview')">web preview</span>
                 </div>
-                <div id="terminalPanel" class="terminal">ready · drag files to organize</div>
+                <div id="terminalPanel" class="terminal">ready · Zap Swahili interpreter loaded</div>
                 <iframe id="previewPanel" style="display: none;"></iframe>
             </div>
         </div>
@@ -377,17 +379,24 @@
     </div>
 
     <script>
-        // ---------- VIRTUAL FS ----------
+        // ==================== VIRTUAL FS with Zap Swahili examples ====================
         const fs = {
             structure: {
+                // Zap Swahili examples (.zap extension)
+                'hello.zap': { type: 'file', content: `andika("Salamu, Dunia!");\nandika("Hujambo rafiki yangu!");` },
+                'math.zap': { type: 'file', content: `$x = 10;\n$y = 20;\n$j = x + y;\nandika("Jumla ni: " + j);\n$t = x * y;\nandika("Zao ni: " + t);` },
+                'loop.zap': { type: 'file', content: `$i = 0;\nwakati (i < 5) {\n  andika("Namba: " + i);\n  i = i + 1;\n}\n\nikiwa (5 > 3) {\n  andika("5 ni kubwa kuliko 3");\n} au {\n  andika("Hii haitaonekana");\n}` },
+                'function.zap': { type: 'file', content: `kazi jumlisha:a,b: => {\n  $matokeo = a + b;\n  rudisha matokeo;\n}\n\n$n1 = 15;\n$n2 = 25;\n$jibu = jumlisha:n1,n2:;\nandika("Jibu: " + jibu);` },
+                'fizzbuzz.zap': { type: 'file', content: `$i = 1;\nwakati (i <= 15) {\n  ikiwa (i % 15 == 0) {\n    andika("FizzBuzz");\n  } ikiwa (i % 3 == 0) {\n    andika("Fizz");\n  } ikiwa (i % 5 == 0) {\n    andika("Buzz");\n  } au {\n    andika(i);\n  }\n  i = i + 1;\n}` },
+                
+                // Regular files
                 'index.html': { type: 'file', content: '<!DOCTYPE html>\n<html>\n<head><link rel="stylesheet" href="style.css"></head>\n<body>\n  <h1>hello world</h1>\n  <button onclick="app.hello()">click</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
                 'style.css': { type: 'file', content: 'body { background: #0d1117; color: #c9d1d9; }\nbutton { background: #238636; }' },
                 'script.js': { type: 'file', content: 'const app = { hello: () => alert("from js!") };\nconsole.log("ready");' },
                 'main.py': { type: 'file', content: 'def greet(name):\n    print("hello", name)\n\ngreet("world")\nfor i in range(3):\n    print(f"count {i}")' },
                 'App.jsx': { type: 'file', content: 'function App() { const [c, setC] = React.useState(0); return <div><h1>react {c}</h1><button onClick={()=>setC(c+1)}>inc</button></div>; }\nReactDOM.render(<App />, document.getElementById("root"));' },
                 'data.sql': { type: 'file', content: 'CREATE TABLE users(name TEXT);\nINSERT INTO users VALUES ("alice"), ("bob");\nSELECT * FROM users;' },
-                'lib': { type: 'folder', children: {} },
-                'components': { type: 'folder', children: {} }
+                'lib': { type: 'folder', children: {} }
             },
             
             getNode(pathArr) {
@@ -408,21 +417,17 @@
                 if (parent[name]) parent[name].content = content;
             },
             
-            // Move file/folder to new location
             moveItem(oldPath, newParentPath) {
                 const oldParts = oldPath.split('/');
                 const name = oldParts.pop();
                 let oldParent = this.structure;
                 oldParts.forEach(p => oldParent = oldParent[p].children);
                 
-                // Get the item to move
                 const item = oldParent[name];
                 if (!item) return false;
                 
-                // Remove from old location
                 delete oldParent[name];
                 
-                // Add to new parent
                 let newParent = this.structure;
                 if (newParentPath) {
                     const newParts = newParentPath.split('/');
@@ -430,7 +435,6 @@
                 }
                 newParent[name] = item;
                 
-                // Update open tabs if needed
                 state.openTabs = state.openTabs.map(tab => {
                     if (tab === oldPath) return newParentPath ? `${newParentPath}/${name}` : name;
                     if (tab.startsWith(oldPath + '/')) {
@@ -447,8 +451,8 @@
         };
 
         const state = {
-            openTabs: ['index.html'],
-            activeFile: 'index.html',
+            openTabs: ['hello.zap'],
+            activeFile: 'hello.zap',
             db: null,
             annotations: [],
             dragSource: null
@@ -459,7 +463,7 @@
         window.onload = () => {
             editor = ace.edit('editor');
             editor.setTheme('ace/theme/tomorrow_night');
-            editor.session.setMode('ace/mode/html');
+            editor.session.setMode('ace/mode/javascript');
             ace.require('ace/ext/language_tools');
             editor.setOptions({
                 enableBasicAutocompletion: true,
@@ -475,10 +479,19 @@
             });
 
             ui.refreshTree();
-            ui.openFile('index.html', 'index.html');
+            ui.openFile('hello.zap', 'hello.zap');
             
-            // Setup drag and drop for entire document
             setupDragAndDrop();
+            
+            // Check if Swahili script loaded
+            setTimeout(() => {
+                if (typeof Interpreter !== 'undefined' && typeof Zap !== 'undefined') {
+                    runner.log('✓ Zap Swahili interpreter loaded successfully!', false, true);
+                    runner.log('  Try running hello.zap or other .zap files', false, true);
+                } else {
+                    runner.log('⚠ Zap interpreter not found - make sure swahili.js is in the root folder', true);
+                }
+            }, 500);
         };
 
         function setupDragAndDrop() {
@@ -488,7 +501,6 @@
             
             document.addEventListener('drop', (e) => {
                 e.preventDefault();
-                // Handle file upload from system
                 if (e.dataTransfer.files.length > 0) {
                     ui.handleFileUpload(e.dataTransfer.files);
                 }
@@ -541,7 +553,6 @@
                             chev.style.transform = childUl.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
                         };
                         
-                        // Make folder droppable
                         div.ondragover = (e) => {
                             e.preventDefault();
                             div.classList.add('drag-over');
@@ -563,7 +574,6 @@
                             }
                         };
                         
-                        // Make folder draggable
                         div.ondragstart = (e) => {
                             e.dataTransfer.setData('text/plain', fullPath);
                             div.classList.add('dragging');
@@ -580,7 +590,6 @@
                         const div = li.querySelector('.tree-item');
                         div.onclick = () => this.openFile(fullPath, name);
                         
-                        // Make file draggable
                         div.ondragstart = (e) => {
                             e.dataTransfer.setData('text/plain', fullPath);
                             div.classList.add('dragging');
@@ -588,8 +597,6 @@
                         div.ondragend = () => {
                             div.classList.remove('dragging');
                         };
-                        
-                        // Files can be dropped onto folders (handled by folder handler)
                     }
                     
                     li.querySelector('.tree-item').oncontextmenu = (e) => {
@@ -602,6 +609,7 @@
             },
             
             iconFor(name) {
+                if (name.endsWith('.zap')) return 'bi bi-lightning-charge-fill text-warning'; // Zap files
                 if (name.endsWith('.html')) return 'bi bi-filetype-html';
                 if (name.endsWith('.css')) return 'bi bi-filetype-css';
                 if (name.endsWith('.js')) return 'bi bi-filetype-js';
@@ -609,7 +617,6 @@
                 if (name.endsWith('.py')) return 'bi bi-filetype-py';
                 if (name.endsWith('.sql')) return 'bi bi-database';
                 if (name.endsWith('.json')) return 'bi bi-filetype-json';
-                if (name.endsWith('.md')) return 'bi bi-markdown';
                 return 'bi bi-file-earmark';
             },
             
@@ -622,7 +629,12 @@
                 const node = fs.getNode(path.split('/'));
                 if (node) {
                     editor.setValue(node.content, -1);
-                    editor.session.setMode(this.aceMode(name));
+                    const ext = name.split('.').pop();
+                    if (ext === 'zap') {
+                        editor.session.setMode('ace/mode/javascript');
+                    } else {
+                        editor.session.setMode(this.aceMode(name));
+                    }
                     editor.session.clearAnnotations();
                     this.highlightActive(path);
                     this.refreshTabs();
@@ -638,8 +650,7 @@
                     jsx:'ace/mode/jsx', 
                     py:'ace/mode/python', 
                     sql:'ace/mode/sql',
-                    json:'ace/mode/json',
-                    md:'ace/mode/markdown'
+                    json:'ace/mode/json'
                 }[ext] || 'ace/mode/text';
             },
             
@@ -684,16 +695,18 @@
                 menu.dataset.type = type;
             },
             
-            // File upload handling
             handleFileUpload(files) {
                 Array.from(files).forEach(file => {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const content = e.target.result;
-                        // Add to root directory by default
                         fs.structure[file.name] = { type: 'file', content: content };
                         this.refreshTree();
                         runner.log(`Uploaded: ${file.name}`, false, true);
+                        
+                        if (file.name === 'swahili.js') {
+                            runner.log('Note: swahili.js loaded - refresh page to use Zap interpreter', false, true);
+                        }
                     };
                     reader.readAsText(file);
                 });
@@ -703,11 +716,9 @@
                 document.getElementById('fileUpload').click();
             },
             
-            // Download project as ZIP
             async downloadProject() {
                 const zip = new JSZip();
                 
-                // Recursively add files to zip
                 function addToZip(node, currentPath, zipFolder) {
                     Object.keys(node).forEach(name => {
                         const item = node[name];
@@ -729,7 +740,7 @@
             
             createNewFile() { 
                 this.modalPurpose = 'file'; 
-                this.openModal('new file', 'filename.ext'); 
+                this.openModal('new file', 'filename.zap (or .html, .py, etc.)'); 
             },
             
             createNewFolder() { 
@@ -818,12 +829,24 @@
                     term.style.display = 'none';
                     prev.style.display = 'flex';
                     document.getElementById('previewTabBtn').classList.add('active-tab');
-                    document.getElementById('terminalTabBtn').classList.remove('active-tab');
+                    document.getElementById('previewTabBtn').classList.remove('active-tab');
                 }
             }
         };
 
-        // ----- RUNNER -----
+        // ==================== Define Zap class (matches your Node.js version) ====================
+        class Zap {
+            constructor(input) {
+                this.input = input;
+                try {
+                    this.interpreter = new Interpreter(this.input);
+                } catch (e) {
+                    runner.log(`Zap Error: ${e.message}`, true);
+                }
+            }
+        }
+
+        // ==================== RUNNER with Zap support ====================
         const runner = {
             async runAndHideEditor() {
                 if (state.activeFile) {
@@ -845,7 +868,9 @@
                 ui.switchOutputTab('terminal');
 
                 try {
-                    if (ext === 'html' || ext === 'css' || ext === 'js') {
+                    if (ext === 'zap') {
+                        await this.runZap(node.content);
+                    } else if (ext === 'html' || ext === 'css' || ext === 'js') {
                         this.runWeb();
                     } else if (ext === 'jsx') {
                         this.runReact();
@@ -866,6 +891,47 @@
                         const line = a.row + 1;
                         this.log(`line ${line}: ${a.type} - ${a.text}`, a.type === 'error');
                     });
+                }
+            },
+
+            async runZap(code) {
+                this.log('⚡ Running Zap Swahili script...', false, true);
+                
+                if (typeof Interpreter === 'undefined') {
+                    this.log('❌ Error: Swahili interpreter not found!', true);
+                    this.log('   Make sure swahili.js is in the root folder', false, true);
+                    return;
+                }
+
+                try {
+                    // Capture console.log output
+                    const originalLog = console.log;
+                    const outputs = [];
+                    
+                    console.log = (...args) => {
+                        const msg = args.join(' ');
+                        outputs.push(msg);
+                        this.log(msg);
+                    };
+                    
+                    // Create and run Zap instance (just like your Node.js version)
+                    const zap = new Zap(code);
+                    
+                    // Restore console.log
+                    console.log = originalLog;
+                    
+                    if (outputs.length === 0) {
+                        this.log('✓ Zap script executed (no output)', false, true);
+                    } else {
+                        this.log('✓ Zap script completed', false, true);
+                    }
+                    
+                } catch (e) {
+                    this.log(`Zap error: ${e.message}`, true);
+                    const lineMatch = e.message.match(/line (\d+)/i);
+                    if (lineMatch) {
+                        this.log(`  at line ${lineMatch[1]}`, true);
+                    }
                 }
             },
 
