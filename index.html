@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Studio · Multi-Language IDE</title>
+    <title>Code Studio · File Manager IDE</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
@@ -23,6 +23,7 @@
             color: #e6edf3;
             overflow: hidden;
         }
+        /* Titlebar */
         .titlebar {
             background: #2c2c2c;
             padding: 0.4rem 1rem;
@@ -32,11 +33,7 @@
             border-bottom: 1px solid #3c3c3c;
             font-size: 0.9rem;
         }
-        .titlebar .brand {
-            font-weight: 600;
-            color: #fff;
-            letter-spacing: 0.3px;
-        }
+        .titlebar .brand { font-weight: 600; color: #fff; }
         .titlebar .brand i { color: #61dafb; margin-right: 6px; }
         .titlebar button {
             background: transparent;
@@ -54,42 +51,86 @@
         .titlebar button:hover { background: #3c3c3c; color: white; }
         .titlebar .run-btn { background: #3ddc84; color: #1e1e1e; }
         .titlebar .run-btn:hover { background: #5fe0a0; }
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background: #2c2c2c;
-            min-width: 180px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-            z-index: 1000;
-            border-radius: 6px;
-            border: 1px solid #3c3c3c;
-            top: 100%;
-            left: 0;
-        }
-        .dropdown-content button {
-            width: 100%;
-            text-align: left;
-            color: #ccc;
-            padding: 10px 16px;
-            border-radius: 0;
-        }
-        .dropdown-content button:hover { background: #3ddc84; color: #1e1e1e; }
-        .dropdown:hover .dropdown-content { display: block; }
 
+        /* Main Layout */
         .workspace {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
+
+        /* SIDEBAR: FILE TREE */
+        .sidebar {
+            width: 250px;
+            background: #252526;
+            border-right: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            padding: 10px 16px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3c3c3c;
+        }
+        .sidebar-header i { cursor: pointer; padding: 4px; border-radius: 4px; }
+        .sidebar-header i:hover { background: #3c3c3c; }
         
+        .file-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            user-select: none;
+        }
+        
+        /* Tree Items */
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #ccc;
+            transition: background 0.1s;
+            position: relative;
+        }
+        .tree-item:hover { background: #2a2d2e; }
+        .tree-item.selected { background: #37373d; }
+        .tree-item.drag-over { background: #3ddc8420; border: 1px dashed #3ddc84; }
+        .tree-item .icon { margin-right: 6px; width: 16px; text-align: center; flex-shrink: 0; }
+        .tree-item .name { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-item .actions { display: none; margin-left: auto; }
+        .tree-item:hover .actions { display: flex; gap: 4px; }
+        .tree-item .action-btn { 
+            background: transparent; border: none; color: #aaa; padding: 2px; cursor: pointer; 
+            font-size: 0.8rem; border-radius: 3px; 
+        }
+        .tree-item .action-btn:hover { background: #4c4c4c; color: white; }
+        
+        /* Folder specific */
+        .folder-content { display: none; }
+        .folder-content.open { display: block; }
+        .folder-icon { color: #dcb67a; }
+        .file-icon { color: #8a8a8a; }
+        .file-icon.html { color: #e34c26; }
+        .file-icon.js { color: #f7df1e; }
+        .file-icon.jsx { color: #61dafb; }
+        .file-icon.py { color: #3572A5; }
+        .file-icon.xml { color: #00b894; }
+
+        /* Editor Zone */
         .editor-zone {
             flex: 1;
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
             min-width: 300px;
-            border-right: 1px solid #3c3c3c;
         }
         .tabs-row {
             display: flex;
@@ -108,19 +149,20 @@
             border-right: 1px solid #1e1e1e;
             cursor: pointer;
             white-space: nowrap;
+            height: 100%;
         }
         .tab.active {
             background: #1e1e1e;
             color: #fff;
             border-top: 2px solid #61dafb;
         }
-        .tab .file-icon { font-size: 0.9rem; }
-        .tab .close-tab { margin-left: auto; font-size: 1.1rem; opacity: 0.5; }
+        .tab .close-tab { font-size: 1rem; opacity: 0.5; margin-left: 6px; }
         .tab .close-tab:hover { opacity: 1; color: #f85149; }
         #editor { flex: 1; width: 100%; font-size: 14px; }
 
+        /* Preview Panel */
         .design-panel {
-            width: 45%;
+            width: 40%;
             min-width: 320px;
             background: #2c2c2c;
             display: flex;
@@ -133,17 +175,8 @@
             border-bottom: 1px solid #3c3c3c;
             display: flex;
             align-items: center;
-            gap: 1rem;
             color: #aaa;
             font-size: 0.85rem;
-        }
-        .design-header i { color: #61dafb; }
-        
-        .preview-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
         .visual-output {
             flex: 1;
@@ -167,7 +200,6 @@
         .console-log { color: #d4d4d4; }
         .console-error { color: #f48771; }
         .console-info { color: #6a9955; }
-        .console-warn { color: #cca700; }
 
         .status-line {
             background: #007acc;
@@ -178,498 +210,621 @@
             display: flex;
             justify-content: space-between;
         }
-        .status-item { display: flex; align-items: center; gap: 6px; }
 
-        .spinner {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #61dafb;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            animation: spin 1s linear infinite;
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: #2c2c2c;
+            border: 1px solid #454545;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 2000;
+            min-width: 160px;
+            padding: 4px 0;
             display: none;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .context-menu-item:hover { background: #3ddc84; color: #1e1e1e; }
+        .context-menu-divider { height: 1px; background: #454545; margin: 4px 0; }
+
+        /* New File Input */
+        .new-file-input {
+            background: #3c3c3c;
+            border: 1px solid #007acc;
+            color: white;
+            padding: 2px 4px;
+            font-size: 0.9rem;
+            outline: none;
+            width: calc(100% - 40px);
+            margin-left: 24px; /* Indentation */
+        }
     </style>
 </head>
 <body>
+
+    <!-- Titlebar -->
     <div class="titlebar">
         <div class="brand"><i class="bi bi-code-slash"></i> Code Studio</div>
-        
-        <div class="dropdown">
-            <button><i class="bi bi-file-earmark-plus"></i> New File</button>
-            <div class="dropdown-content">
-                <button onclick="fileManager.createFile('html')"><i class="bi bi-filetype-html"></i> HTML</button>
-                <button onclick="fileManager.createFile('js')"><i class="bi bi-filetype-js"></i> JavaScript</button>
-                <button onclick="fileManager.createFile('jsx')"><i class="bi bi-filetype-jsx"></i> React JSX</button>
-                <button onclick="fileManager.createFile('py')"><i class="bi bi-filetype-py"></i> Python</button>
-                <button onclick="fileManager.createFile('xml')"><i class="bi bi-file-earmark-code"></i> Android XML</button>
-            </div>
-        </div>
-
         <button class="run-btn" onclick="runner.runCurrentFile()"><i class="bi bi-play-fill"></i> Run</button>
     </div>
 
+    <!-- Workspace -->
     <div class="workspace">
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                Explorer
+                <i class="bi bi-plus-square" title="New File" onclick="fileTree.createNewFile()"></i>
+            </div>
+            <div class="file-tree" id="fileTreeContainer">
+                <!-- Tree will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Editor -->
         <div id="editorZone" class="editor-zone">
             <div class="tabs-row" id="tabsContainer"></div>
             <div id="editor"></div>
             <div class="status-line">
-                <span class="status-item"><span id="langStatus">Ready</span></span>
-                <span class="status-item">
-                    <div class="spinner" id="loadingSpinner"></div>
-                    <span id="statusMsg">Multi-language IDE</span>
-                </span>
+                <span id="langStatus">Ready</span>
+                <span id="statusMsg">Ctrl+S to save</span>
             </div>
         </div>
 
+        <!-- Preview -->
         <div class="design-panel">
             <div class="design-header">
-                <i class="bi bi-terminal"></i> Output
-                <span style="margin-left:auto; cursor:pointer;" onclick="runner.clearConsole()" title="Clear Console">
-                    <i class="bi bi-trash"></i>
-                </span>
+                <i class="bi bi-terminal" style="margin-right:8px;"></i> Output
             </div>
-            <div class="preview-container">
-                <iframe id="previewFrame" class="visual-output" sandbox="allow-scripts allow-modals"></iframe>
-                <div id="consoleOutput" class="console-output"></div>
-            </div>
+            <iframe id="previewFrame" class="visual-output" sandbox="allow-scripts allow-modals"></iframe>
+            <div id="consoleOutput" class="console-output"></div>
         </div>
     </div>
 
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="fileTree.handleContextAction('newFile')"><i class="bi bi-file-plus"></i> New File</div>
+        <div class="context-menu-item" onclick="fileTree.handleContextAction('newFolder')"><i class="bi bi-folder-plus"></i> New Folder</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="fileTree.handleContextAction('rename')"><i class="bi bi-pencil"></i> Rename</div>
+        <div class="context-menu-item" onclick="fileTree.handleContextAction('delete')"><i class="bi bi-trash"></i> Delete</div>
+    </div>
+
     <script>
+        // ---------- STATE & CONFIGURATION ----------
         let editor;
         const previewFrame = document.getElementById('previewFrame');
         const consoleElement = document.getElementById('consoleOutput');
-        const spinner = document.getElementById('loadingSpinner');
-        
-        const fileManager = {
-            files: {
-                'index.html': {
-                    type: 'html',
-                    content: `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
-        h1 { color: #333; }
-    </style>
-</head>
-<body>
-    <h1>Hello HTML</h1>
-    <p>Edit this code to see live preview.</p>
-</body>
-</html>`
-                },
-                'app.jsx': {
-                    type: 'jsx',
-                    content: `function App() {
-    const [count, setCount] = React.useState(0);
-    return (
-        <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-            <h1 style={{ color: '#61dafb' }}>React App</h1>
-            <p>Count: {count}</p>
-            <button onClick={() => setCount(c => c + 1)}>Increment</button>
-        </div>
-    );
-}
-ReactDOM.render(<App />, document.getElementById('root'));`
-                },
-                'script.js': {
-                    type: 'js',
-                    content: `// JavaScript Demo
-console.log("Hello from JavaScript!");
-console.log("2 + 2 =", 2+2);`
-                },
-                'main.py': {
-                    type: 'py',
-                    content: `# Python Demo
-import math
-print("Hello from Python!")
-print("Sqrt of 16 is", math.sqrt(16))`
-                },
-                'layout.xml': {
-                    type: 'xml',
-                    content: `<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#FFFFFF">
+        const contextMenu = document.getElementById('contextMenu');
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Welcome to Android"
-        android:textSize="24sp"
-        android:textColor="#2196F3"
-        android:layout_marginBottom="16dp"/>
+        // Generate unique IDs
+        const uid = () => '_' + Math.random().toString(36).substr(2, 9);
 
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter your name"
-        android:padding="12dp"
-        android:background="#F5F5F5"
-        android:layout_marginBottom="16dp"/>
-
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="CLICK ME"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"/>
-
-</LinearLayout>`
-                }
-            },
-            activeFile: 'index.html',
-
-            init() {
-                editor = ace.edit('editor');
-                editor.setTheme('ace/theme/tomorrow_night');
-                editor.setOptions({
-                    enableBasicAutocompletion: true,
-                    enableLiveAutocompletion: true,
-                    fontSize: '14px'
-                });
-
-                this.switchTab('index.html');
-                
-                editor.session.on('change', () => {
-                    clearTimeout(this.updateTimer);
-                    this.updateTimer = setTimeout(() => {
-                        this.saveCurrentFile();
-                        const file = this.files[this.activeFile];
-                        if (['html', 'jsx', 'xml'].includes(file.type)) {
-                            runner.runCurrentFile();
+        // File System Structure (Hierarchical)
+        const fsData = {
+            root: [
+                {
+                    id: uid(), type: 'folder', name: 'src', expanded: true,
+                    children: [
+                        { id: uid(), type: 'file', name: 'index.html', content: '<!DOCTYPE html>\n<html>\n<body>\n\t<h1>Hello World</h1>\n</body>\n</html>' },
+                        { 
+                            id: uid(), type: 'file', name: 'app.jsx', content: 
+                            'function App() {\n\tconst [c, setC] = React.useState(0);\n\treturn (\n\t\t<div style={{padding:20}}>\n\t\t\t<h1>React App</h1>\n\t\t\t<button onClick={()=>setC(c+1)}>Count: {c}</button>\n\t\t</div>\n\t);\n}\nReactDOM.render(<App />, document.getElementById("root"));' 
                         }
-                    }, 500);
-                });
+                    ]
+                },
+                {
+                    id: uid(), type: 'folder', name: 'python', expanded: false,
+                    children: [
+                        { id: uid(), type: 'file', name: 'main.py', content: '# Python Code\nprint("Hello from Python")\nfor i in range(3):\n\tprint(i)' }
+                    ]
+                },
+                { id: uid(), type: 'file', name: 'layout.xml', content: '<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout\n\txmlns:android="http://schemas.android.com/apk/res/android"\n\tandroid:layout_width="match_parent"\n\tandroid:layout_height="match_parent"\n\tandroid:orientation="vertical"\n\tandroid:padding="16dp">\n\n\t<TextView\n\t\tandroid:layout_width="wrap_content"\n\t\tandroid:text="Android XML Preview"\n\t\tandroid:textSize="20sp"/>\n\n</LinearLayout>' }
+            ]
+        };
+
+        const openTabs = []; // Array of file IDs
+        let activeFileId = null;
+        let draggedItem = null; // For drag and drop
+        let contextTarget = null; // For right click menu
+
+        // ---------- FILE TREE MANAGER ----------
+        const fileTree = {
+            init() {
+                this.render();
+                // Auto open first file
+                const firstFile = this.findFirstFile(fsData.root);
+                if(firstFile) this.openFile(firstFile.id);
             },
 
-            createFile(type) {
-                const names = { 'html': 'untitled.html', 'js': 'script.js', 'jsx': 'component.jsx', 'py': 'main.py', 'xml': 'layout.xml' };
-                let name = names[type];
-                let counter = 1;
-                while (this.files[name]) {
-                    name = `${name.split('.')[0]}_${counter}.${type}`;
-                    counter++;
+            findFirstFile(items) {
+                for(let item of items) {
+                    if(item.type === 'file') return item;
+                    if(item.type === 'folder') {
+                        const found = this.findFirstFile(item.children);
+                        if(found) return found;
+                    }
                 }
-                this.files[name] = { type: type, content: this.getDefaultTemplate(type) };
-                this.switchTab(name);
+                return null;
             },
 
-            getDefaultTemplate(type) {
-                const templates = {
-                    'html': '<!DOCTYPE html>\n<html>\n<head>\n    <title>New Page</title>\n</head>\n<body>\n    <h1>Hello</h1>\n</body>\n</html>',
-                    'js': '// JavaScript\nconsole.log("Hello World");',
-                    'jsx': 'function Component() {\n    return <div>New React Component</div>;\n}\nReactDOM.render(<Component />, document.getElementById("root"));',
-                    'py': '# Python Script\nprint("Hello World")',
-                    'xml': '<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout\n    xmlns:android="http://schemas.android.com/apk/res/android"\n    android:layout_width="match_parent"\n    android:layout_height="match_parent"\n    android:orientation="vertical">\n\n</LinearLayout>'
-                };
-                return templates[type];
+            render() {
+                const container = document.getElementById('fileTreeContainer');
+                container.innerHTML = this.renderItems(fsData.root, 0);
+                this.attachEvents();
             },
 
-            switchTab(filename) {
-                this.saveCurrentFile();
-                this.activeFile = filename;
-                const file = this.files[filename];
-                
-                editor.setValue(file.content, -1);
-                const modeMap = {
-                    'html': 'ace/mode/html',
-                    'js': 'ace/mode/javascript',
-                    'jsx': 'ace/mode/jsx',
-                    'py': 'ace/mode/python',
-                    'xml': 'ace/mode/xml'
-                };
-                editor.session.setMode(modeMap[file.type]);
-                
-                this.renderTabs();
-                document.getElementById('langStatus').innerText = file.type.toUpperCase();
-                runner.runCurrentFile();
-            },
-
-            saveCurrentFile() {
-                if (this.activeFile && this.files[this.activeFile]) {
-                    this.files[this.activeFile].content = editor.getValue();
-                }
-            },
-
-            renderTabs() {
-                const container = document.getElementById('tabsContainer');
-                container.innerHTML = '';
-                
-                Object.keys(this.files).forEach(name => {
-                    const file = this.files[name];
-                    const tab = document.createElement('div');
-                    tab.className = `tab ${name === this.activeFile ? 'active' : ''}`;
+            renderItems(items, depth) {
+                let html = '';
+                items.forEach(item => {
+                    const indent = depth * 16;
+                    const isActive = item.id === activeFileId ? 'selected' : '';
                     
-                    const icons = { 
-                        'html': 'bi-filetype-html', 
-                        'js': 'bi-filetype-js', 
-                        'jsx': 'bi-filetype-jsx', 
-                        'py': 'bi-filetype-py',
-                        'xml': 'bi-file-earmark-code' 
+                    if(item.type === 'folder') {
+                        const isOpen = item.expanded ? 'open' : '';
+                        const icon = item.expanded ? 'bi-chevron-down' : 'bi-chevron-right';
+                        html += `
+                            <div class="tree-item" data-id="${item.id}" data-type="folder" style="padding-left:${indent+8}px" draggable="true">
+                                <i class="bi ${icon}" style="font-size:10px; margin-right:4px;"></i>
+                                <i class="bi bi-folder-fill folder-icon icon"></i>
+                                <span class="name">${item.name}</span>
+                            </div>
+                            <div class="folder-content ${isOpen}" data-folder-id="${item.id}">
+                                ${this.renderItems(item.children, depth + 1)}
+                            </div>
+                        `;
+                    } else {
+                        // File icons
+                        const ext = item.name.split('.').pop();
+                        const iconClass = `file-icon ${ext}`;
+                        html += `
+                            <div class="tree-item ${isActive}" data-id="${item.id}" data-type="file" style="padding-left:${indent+8}px" draggable="true">
+                                <i class="bi bi-file-earmark ${iconClass} icon"></i>
+                                <span class="name">${item.name}</span>
+                            </div>
+                        `;
+                    }
+                });
+                return html;
+            },
+
+            attachEvents() {
+                const items = document.querySelectorAll('.tree-item');
+                items.forEach(el => {
+                    // Click
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        const id = el.dataset.id;
+                        const type = el.dataset.type;
+                        
+                        if (type === 'folder') {
+                            this.toggleFolder(id);
+                        } else {
+                            this.openFile(id);
+                        }
                     };
-                    tab.innerHTML = `
-                        <i class="bi ${icons[file.type]} file-icon"></i>
-                        ${name}
-                        <span class="close-tab" onclick="event.stopPropagation(); fileManager.closeTab('${name}')">&times;</span>
-                    `;
-                    tab.onclick = () => this.switchTab(name);
-                    container.appendChild(tab);
+
+                    // Context Menu
+                    el.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        contextTarget = el.dataset.id;
+                        this.showContextMenu(e.clientX, e.clientY);
+                    };
+
+                    // Drag Start
+                    el.ondragstart = (e) => {
+                        e.stopPropagation();
+                        draggedItem = el.dataset.id;
+                        el.style.opacity = '0.5';
+                    };
+                    
+                    el.ondragend = (e) => {
+                        el.style.opacity = '1';
+                        draggedItem = null;
+                        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    };
+
+                    // Drop Zone (only for folders)
+                    if(el.dataset.type === 'folder') {
+                        el.ondragover = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            el.classList.add('drag-over');
+                        };
+                        el.ondragleave = (e) => {
+                            el.classList.remove('drag-over');
+                        };
+                        el.ondrop = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            el.classList.remove('drag-over');
+                            if(draggedItem) {
+                                this.moveItem(draggedItem, el.dataset.id);
+                            }
+                        };
+                    }
                 });
             },
 
-            closeTab(name) {
-                if (Object.keys(this.files).length <= 1) return;
-                delete this.files[name];
-                if (this.activeFile === name) {
-                    this.switchTab(Object.keys(this.files)[0]);
-                } else {
-                    this.renderTabs();
+            // Core Logic: Find, Move, Delete, Create
+            
+            findItemAndParent(items, id, parent = null) {
+                for(let i=0; i<items.length; i++) {
+                    if(items[i].id === id) return { item: items[i], parent: parent, index: i, siblings: items };
+                    if(items[i].type === 'folder') {
+                        const found = this.findItemAndParent(items[i].children, id, items[i]);
+                        if(found) return found;
+                    }
                 }
+                return null;
+            },
+
+            toggleFolder(id) {
+                const found = this.findItemAndParent(fsData.root, id);
+                if(found && found.item.type === 'folder') {
+                    found.item.expanded = !found.item.expanded;
+                    this.render();
+                }
+            },
+
+            moveItem(itemId, targetFolderId) {
+                if(itemId === targetFolderId) return;
+                
+                // Get Source
+                const source = this.findItemAndParent(fsData.root, itemId);
+                if(!source) return;
+                
+                // Get Target Folder
+                const target = this.findItemAndParent(fsData.root, targetFolderId);
+                if(!target || target.item.type !== 'folder') return;
+
+                // Prevent moving folder into its own child
+                if(source.item.type === 'folder') {
+                    if(this.isChildOf(targetFolderId, itemId)) {
+                        alert("Cannot move folder into its own subfolder.");
+                        return;
+                    }
+                }
+
+                // Remove from old
+                source.siblings.splice(source.index, 1);
+                
+                // Add to new
+                target.item.children.push(source.item);
+                target.item.expanded = true; // Auto expand
+                
+                this.render();
+                document.getElementById('statusMsg').innerText = "Item moved";
+            },
+
+            isChildOf(childId, parentId) {
+                const parent = this.findItemAndParent(fsData.root, parentId);
+                if(!parent) return false;
+                if(parent.item.type === 'folder') {
+                    for(let c of parent.item.children) {
+                        if(c.id === childId) return true;
+                        if(c.type === 'folder' && this.isChildOf(childId, c.id)) return true;
+                    }
+                }
+                return false;
+            },
+
+            openFile(id) {
+                const found = this.findItemAndParent(fsData.root, id);
+                if(found && found.item.type === 'file') {
+                    activeFileId = id;
+                    
+                    // Add to tabs if not exists
+                    if(!openTabs.includes(id)) openTabs.push(id);
+                    
+                    // Update Editor
+                    editor.setValue(found.item.content, -1);
+                    
+                    // Set Mode
+                    const ext = found.item.name.split('.').pop();
+                    const modeMap = { 'html': 'ace/mode/html', 'js': 'ace/mode/javascript', 'jsx': 'ace/mode/jsx', 'py': 'ace/mode/python', 'xml': 'ace/mode/xml' };
+                    editor.session.setMode(modeMap[ext] || 'ace/mode/text');
+                    
+                    document.getElementById('langStatus').innerText = ext.toUpperCase();
+                    
+                    this.render(); // Refresh tree selection
+                    renderTabs();
+                    runner.runCurrentFile();
+                }
+            },
+
+            createNewFile(parentId = null) {
+                let parent = parentId ? this.findItemAndParent(fsData.root, parentId).item : null;
+                if(!parent) {
+                    // Find root or create logic
+                    parent = { children: fsData.root }; // Fake parent for root
+                }
+                
+                const name = prompt("Enter file name (e.g. script.js, folderName):");
+                if(!name) return;
+
+                const isFolder = !name.includes('.'); // Simple heuristic: no dot = folder
+                
+                const newItem = {
+                    id: uid(),
+                    type: isFolder ? 'folder' : 'file',
+                    name: name,
+                    content: isFolder ? null : ''
+                };
+                if(isFolder) newItem.children = [];
+
+                if(parentId) {
+                    // It's a specific folder
+                    const found = this.findItemAndParent(fsData.root, parentId);
+                    if(found && found.item.type === 'folder') {
+                        found.item.children.push(newItem);
+                        found.item.expanded = true;
+                    }
+                } else {
+                    // It's root level
+                    fsData.root.push(newItem);
+                }
+                
+                this.render();
+                if(!isFolder) this.openFile(newItem.id);
+            },
+
+            deleteItem(id) {
+                if(!confirm("Are you sure you want to delete this item?")) return;
+                const found = this.findItemAndParent(fsData.root, id);
+                if(found) {
+                    found.siblings.splice(found.index, 1);
+                    
+                    // Close tab if open
+                    const tabIndex = openTabs.indexOf(id);
+                    if(tabIndex > -1) openTabs.splice(tabIndex, 1);
+                    
+                    if(activeFileId === id) {
+                        activeFileId = null;
+                        editor.setValue("// File Deleted", -1);
+                        renderTabs();
+                    }
+                    
+                    this.render();
+                }
+            },
+
+            renameItem(id) {
+                const found = this.findItemAndParent(fsData.root, id);
+                if(found) {
+                    const newName = prompt("Enter new name:", found.item.name);
+                    if(newName) {
+                        found.item.name = newName;
+                        this.render();
+                        renderTabs();
+                    }
+                }
+            },
+
+            showContextMenu(x, y) {
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = x + 'px';
+                contextMenu.style.top = y + 'px';
+            },
+
+            hideContextMenu() {
+                contextMenu.style.display = 'none';
+            },
+
+            handleContextAction(action) {
+                this.hideContextMenu();
+                if(!contextTarget) return;
+
+                if(action === 'newFile') this.createNewFile(contextTarget);
+                else if(action === 'newFolder') this.createNewFile(contextTarget); // Reuse logic
+                else if(action === 'rename') this.renameItem(contextTarget);
+                else if(action === 'delete') this.deleteItem(contextTarget);
             }
         };
 
-        const runner = {
-            logs: [],
+        // ---------- TABS ----------
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            container.innerHTML = '';
             
-            runCurrentFile() {
-                fileManager.saveCurrentFile();
-                const file = fileManager.files[fileManager.activeFile];
-                spinner.style.display = 'inline-block';
+            openTabs.forEach(id => {
+                const found = fileTree.findItemAndParent(fsData.root, id);
+                if(!found) return;
                 
-                this.clearConsole();
+                const tab = document.createElement('div');
+                tab.className = `tab ${id === activeFileId ? 'active' : ''}`;
                 
-                if (file.type === 'html') this.runHTML(file.content);
-                else if (file.type === 'js') this.runJS(file.content);
-                else if (file.type === 'jsx') this.runReact(file.content);
-                else if (file.type === 'py') this.runPython(file.content);
-                else if (file.type === 'xml') this.runXML(file.content);
+                const ext = found.item.name.split('.').pop();
+                const iconMap = { 'html': 'bi-filetype-html', 'js': 'bi-filetype-js', 'jsx': 'bi-filetype-jsx', 'py': 'bi-filetype-py', 'xml': 'bi-file-earmark-code' };
                 
-                setTimeout(() => spinner.style.display = 'none', 300);
-            },
+                tab.innerHTML = `
+                    <i class="bi ${iconMap[ext] || 'bi-file-earmark'}"></i>
+                    ${found.item.name}
+                    <span class="close-tab">&times;</span>
+                `;
+                
+                tab.onclick = (e) => {
+                    if(e.target.classList.contains('close-tab')) {
+                        // Close tab
+                        openTabs.splice(openTabs.indexOf(id), 1);
+                        if(activeFileId === id && openTabs.length > 0) {
+                            fileTree.openFile(openTabs[openTabs.length-1]);
+                        } else if(openTabs.length === 0) {
+                            activeFileId = null;
+                            editor.setValue("", -1);
+                        }
+                        renderTabs();
+                        fileTree.render();
+                    } else {
+                        fileTree.openFile(id);
+                    }
+                };
+                
+                container.appendChild(tab);
+            });
+        }
 
-            runHTML(code) {
+        // ---------- RUNNER ----------
+        const runner = {
+            runCurrentFile() {
+                if(!activeFileId) return;
+                const found = fileTree.findItemAndParent(fsData.root, activeFileId);
+                if(!found) return;
+                
+                // Save before run
+                found.item.content = editor.getValue();
+                
+                const file = found.item;
+                const type = file.name.split('.').pop();
+                
                 consoleElement.style.display = 'none';
                 previewFrame.style.display = 'block';
+                consoleElement.innerHTML = '';
+                
+                if(type === 'html') this.runHTML(file.content);
+                else if(type === 'js') this.runJS(file.content);
+                else if(type === 'jsx') this.runReact(file.content);
+                else if(type === 'py') this.runPython(file.content);
+                else if(type === 'xml') this.runXML(file.content);
+                else {
+                    consoleElement.style.display = 'block';
+                    previewFrame.style.display = 'none';
+                    this.log('info', `Cannot run file type: ${type}`);
+                }
+            },
+            // ... run methods remain mostly the same as previous version ...
+            runHTML(code) {
                 previewFrame.srcdoc = code;
             },
-
             runJS(code) {
                 consoleElement.style.display = 'block';
                 previewFrame.style.display = 'none';
-                previewFrame.srcdoc = ''; 
-                
-                this.log("info", `> Running ${fileManager.activeFile}`);
-                
+                this.log('info', '> Running JavaScript...');
                 const customConsole = {
                     log: (...args) => this.log('log', args.map(a => this.stringify(a)).join(' ')),
                     error: (...args) => this.log('error', args.map(a => this.stringify(a)).join(' ')),
                     warn: (...args) => this.log('warn', args.map(a => this.stringify(a)).join(' '))
                 };
-
-                try {
-                    const fn = new Function('console', code);
-                    fn(customConsole);
-                } catch (e) {
-                    this.log('error', e.message);
-                }
+                try { new Function('console', code)(customConsole); } 
+                catch (e) { this.log('error', e.message); }
             },
-
             runReact(code) {
-                consoleElement.style.display = 'none';
-                previewFrame.style.display = 'block';
-                
-                const html = `
-                    <div id="root"></div>
-                    <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
-                    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
-                    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-                    <script type="text/babel">
-                        ${code}
-                    <\/script>
-                `;
+                const html = `<div id="root"></div>
+                <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+                <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+                <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+                <script type="text/babel">${code}<\/script>`;
                 previewFrame.srcdoc = html;
             },
-
             runPython(code) {
                 consoleElement.style.display = 'block';
                 previewFrame.style.display = 'none';
-                previewFrame.srcdoc = '';
-                this.log("info", `> Running ${fileManager.activeFile}`);
-
-                function outf(text) {
-                    runner.log('log', text.replace(/\n$/, ""));
-                }
-                
-                function builtinRead(x) {
-                    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-                        throw "File not found: '" + x + "'";
-                    return Sk.builtinFiles["files"][x];
-                }
-
-                Sk.configure({
-                    output: outf,
-                    read: builtinRead,
+                this.log('info', '> Running Python (Skulpt)...');
+                Sk.configure({ 
+                    output: (t) => this.log('log', t.replace(/\n$/, "")), 
+                    read: x => {
+                        if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) throw "File not found: '" + x + "'";
+                        return Sk.builtinFiles["files"][x];
+                    },
                     __future__: Sk.python3
                 });
-
-                Sk.misceval.asyncToPromise(function() {
-                    return Sk.importMainWithBody("<stdin>", false, code, true);
-                }).then(function(mod) {
-                    runner.log('info', '✓ Execution finished');
-                }, function(err) {
-                    runner.log('error', err.toString());
-                });
+                Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code, true))
+                    .catch(e => this.log('error', e.toString()));
             },
-
             runXML(code) {
-                consoleElement.style.display = 'none';
-                previewFrame.style.display = 'block';
-                
-                // Android XML Parser & Renderer
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(code, "text/xml");
                 const errorNode = xmlDoc.querySelector('parsererror');
-
                 if (errorNode) {
-                    previewFrame.srcdoc = `<body style="background:#1e1e1e;color:#f85149;font-family:sans-serif;padding:20px;">XML Error: <br><pre>${errorNode.textContent}</pre></body>`;
+                    previewFrame.srcdoc = `<body style="background:#1e1e1e;color:#f85149;padding:20px;">XML Error:<br><pre>${errorNode.textContent}</pre></body>`;
                     return;
                 }
-
-                // Styles needed for the Android Preview
-                const styles = `
-                    body { margin:0; background:#1a1a1a; display:flex; justify-content:center; align-items:center; height:100vh; font-family: 'Roboto', sans-serif; }
-                    .device { width:360px; height:640px; background:#fff; border-radius:36px; overflow:hidden; box-shadow:0 15px 35px rgba(0,0,0,0.6); border:8px solid #333; display:flex; flex-direction:column; }
-                    .status-bar { background:#2196F3; padding:4px 16px; color:#fff; font-size:12px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
-                    .content { flex:1; background:#f5f5f5; padding:16px; overflow-y:auto; position:relative; }
-                    
-                    /* Widget Styles */
-                    .widget { width:100%; margin-bottom:12px; box-sizing:border-box; }
-                    .linear-layout { display:flex; flex-direction:column; }
-                    .linear-layout.horizontal { flex-direction:row; gap:8px; }
-                    .text-view { color:#333; font-size:14px; }
-                    .button { background:#2196F3; color:#fff; padding:12px; border-radius:4px; text-align:center; font-weight:500; border:none; cursor:pointer; }
-                    .edit-text { background:#fff; border-bottom:2px solid #2196F3; padding:10px 4px; color:#333; font-size:14px; }
-                    .image-view { background:#e0e0e0; min-height:100px; display:flex; align-items:center; justify-content:center; color:#aaa; border-radius:8px; }
-                `;
+                const styles = `body{margin:0;background:#1a1a1a;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Roboto,sans-serif}.device{width:360px;height:640px;background:#fff;border-radius:36px;overflow:hidden;box-shadow:0 15px 35px rgba(0,0,0,0.6);border:8px solid #333;display:flex;flex-direction:column}.status-bar{background:#2196F3;padding:4px 16px;color:#fff;font-size:12px;display:flex;justify-content:space-between}.content{flex:1;background:#f5f5f5;padding:16px;overflow-y:auto}.widget{width:100%;margin-bottom:12px;box-sizing:border-box}.linear-layout{display:flex;flex-direction:column}.text-view{color:#333;font-size:14px}.button{background:#2196F3;color:#fff;padding:12px;border-radius:4px;text-align:center;font-weight:500}.edit-text{background:#fff;border-bottom:2px solid #2196F3;padding:10px 4px;color:#333}`;
                 
                 function parseNode(node) {
                     if (node.nodeType !== 1) return '';
-                    
                     let tag = node.tagName.toLowerCase();
                     let attrs = {};
                     for (let a of node.attributes) attrs[a.name] = a.value;
-                    
                     let style = '';
                     let classes = 'widget';
-                    let content = '';
-                    
-                    // Process children first (recursive)
                     let childrenHtml = '';
-                    for (let child of node.childNodes) {
-                        childrenHtml += parseNode(child);
-                    }
+                    for (let c of node.childNodes) childrenHtml += parseNode(c);
 
-                    // Handle Android attributes mapping
                     if (attrs['android:background']) style += `background:${attrs['android:background']};`;
                     if (attrs['android:textColor']) style += `color:${attrs['android:textColor']};`;
                     if (attrs['android:textSize']) style += `font-size:${attrs['android:textSize']};`;
-                    if (attrs['android:padding']) style += `padding:${attrs['android:padding']};`;
-                    if (attrs['android:layout_marginBottom']) style += `margin-bottom:${attrs['android:layout_marginBottom']};`;
-                    if (attrs['android:layout_gravity'] === 'center_horizontal') style += `margin:0 auto;`;
                     if (attrs['android:layout_width'] === 'match_parent') style += `width:100%;`;
 
-                    // Map XML tags to HTML
                     if (tag === 'linearlayout') {
                         classes = 'widget linear-layout';
                         if (attrs['android:orientation'] === 'horizontal') classes += ' horizontal';
                         return `<div class="${classes}" style="${style}">${childrenHtml}</div>`;
-                    } 
-                    else if (tag === 'textview') {
-                        classes = 'widget text-view';
-                        content = attrs['android:text'] || 'TextView';
-                        return `<div class="${classes}" style="${style}">${content}</div>`;
-                    } 
-                    else if (tag === 'button') {
-                        classes = 'widget button';
-                        content = attrs['android:text'] || 'Button';
+                    } else if (tag === 'textview') {
+                        return `<div class="widget text-view" style="${style}">${attrs['android:text'] || 'TextView'}</div>`;
+                    } else if (tag === 'button') {
                         if (attrs['android:backgroundtint']) style += `background:${attrs['android:backgroundtint']};`;
-                        return `<div class="${classes}" style="${style}">${content}</div>`;
-                    } 
-                    else if (tag === 'edittext') {
-                        classes = 'widget edit-text';
-                        content = attrs['android:hint'] || 'EditText';
-                        return `<div class="${classes}" style="${style}">${content}</div>`;
-                    } 
-                    else if (tag === 'imageview') {
-                        classes = 'widget image-view';
-                        content = '🖼️ Image';
-                        return `<div class="${classes}" style="${style}">${content}</div>`;
+                        return `<div class="widget button" style="${style}">${attrs['android:text'] || 'Button'}</div>`;
+                    } else if (tag === 'edittext') {
+                        return `<div class="widget edit-text" style="${style}">${attrs['android:hint'] || 'EditText'}</div>`;
                     }
-                    
-                    return childrenHtml; // Fallback for containers
+                    return childrenHtml;
                 }
-
-                const bodyContent = parseNode(xmlDoc.documentElement);
-                
-                const html = `
-                <html>
-                    <head><style>${styles}</style></head>
-                    <body>
-                        <div class="device">
-                            <div class="status-bar">
-                                <span>10:25</span>
-                                <span>Android Preview</span>
-                            </div>
-                            <div class="content">
-                                ${bodyContent}
-                            </div>
-                        </div>
-                    </body>
-                </html>`;
-
-                previewFrame.srcdoc = html;
+                const body = parseNode(xmlDoc.documentElement);
+                previewFrame.srcdoc = `<html><head><style>${styles}</style></head><body><div class="device"><div class="status-bar"><span>10:25</span><span>Android Preview</span></div><div class="content">${body}</div></div></body></html>`;
             },
-
-            log(type, message) {
+            log(type, msg) {
                 const div = document.createElement('div');
                 div.className = `console-line console-${type}`;
-                div.innerText = message;
+                div.innerText = msg;
                 consoleElement.appendChild(div);
                 consoleElement.scrollTop = consoleElement.scrollHeight;
             },
-
-            clearConsole() {
-                consoleElement.innerHTML = '';
-            },
-
             stringify(obj) {
-                if (typeof obj === 'object') {
-                    try { return JSON.stringify(obj, null, 2); }
-                    catch(e) { return String(obj); }
-                }
-                return String(obj);
+                try { return JSON.stringify(obj); } catch(e) { return String(obj); }
             }
         };
 
-        window.onload = () => fileManager.init();
-        
+        // ---------- INIT ----------
+        window.onload = () => {
+            editor = ace.edit('editor');
+            editor.setTheme('ace/theme/tomorrow_night');
+            editor.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, fontSize: '14px' });
+            
+            fileTree.init();
+
+            // Global click to hide context menu
+            window.onclick = () => fileTree.hideContextMenu();
+
+            // Auto-save logic
+            editor.session.on('change', () => {
+                if(activeFileId) {
+                    // Debounce save
+                    clearTimeout(window.saveTimer);
+                    window.saveTimer = setTimeout(() => {
+                        const found = fileTree.findItemAndParent(fsData.root, activeFileId);
+                        if(found) found.item.content = editor.getValue();
+                    }, 300);
+                }
+            });
+        };
+
+        // Shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                fileManager.saveCurrentFile();
-                document.getElementById('statusMsg').innerText = 'Saved!';
-                setTimeout(() => document.getElementById('statusMsg').innerText = 'Ready', 1500);
-            }
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                runner.runCurrentFile();
+                document.getElementById('statusMsg').innerText = "All changes saved";
+                setTimeout(() => document.getElementById('statusMsg').innerText = "Ready", 1500);
             }
         });
     </script>
