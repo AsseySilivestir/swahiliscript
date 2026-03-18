@@ -3,48 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pure·ide · stable build</title>
+<title>pure·ide · ultimate build</title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<!-- Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
 
 <style>
-body { margin:0; background:#0d1117; color:#e6edf3; font-family:sans-serif; display:flex; flex-direction:column; height:100vh; }
-.titlebar { display:flex; gap:10px; padding:10px; background:#161b22; }
-button { cursor:pointer; }
-.workspace { display:flex; flex:1; }
-.sidebar { width:220px; border-right:1px solid #30363d; padding:10px; }
-#editor { flex:1; height:100%; }
-.output { width:50%; display:none; flex-direction:column; border-left:1px solid #30363d; }
-body.split .output { display:flex; }
-.terminal { flex:1; padding:10px; font-family:monospace; overflow:auto; }
-iframe { flex:1; border:none; background:white; }
+body { margin:0; background:#0d1117; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; height:100vh;}
+.topbar { padding:10px; background:#161b22; display:flex; gap:10px;}
+.workspace { display:flex; flex:1;}
+.sidebar { width:200px; border-right:1px solid #333; padding:10px;}
+#editor { flex:1; height:100%;}
+.output { width:50%; display:none; flex-direction:column; border-left:1px solid #333;}
+body.split .output { display:flex;}
+.terminal { flex:1; padding:10px; overflow:auto; font-family:monospace;}
+iframe { flex:1; border:none; background:#fff;}
+button { cursor:pointer;}
 </style>
 </head>
 
 <body>
 
-<div class="titlebar">
+<div class="topbar">
 <button onclick="ui.newFile()">New</button>
 <button onclick="ui.toggleSplit()">Split</button>
 <button onclick="runner.run()">Run</button>
 </div>
 
 <div class="workspace">
-<div class="sidebar" id="fileList"></div>
+<div class="sidebar" id="files"></div>
 <div id="editor"></div>
+
 <div class="output">
 <div>
-<button onclick="ui.showTab('terminal')">Terminal</button>
-<button onclick="ui.showTab('preview')">Preview</button>
+<button onclick="ui.show('terminal')">Terminal</button>
+<button onclick="ui.show('preview')">Preview</button>
 </div>
 <div id="terminal" class="terminal"></div>
 <iframe id="preview"></iframe>
@@ -52,120 +52,231 @@ iframe { flex:1; border:none; background:white; }
 </div>
 
 <script>
-// GLOBAL ERROR HANDLER
-window.onerror = function(msg, url, line) {
-    document.getElementById('terminal').innerHTML += 
-        "JS Error: " + msg + " (line " + line + ")<br>";
+// ERROR HANDLER
+window.onerror = (m,u,l)=> {
+    terminal.innerHTML += `JS Error: ${m} (line ${l})<br>`;
 };
 
 // FILE SYSTEM
 const fs = {
     files: {
-        "index.html": "<h1>Hello</h1><script src='app.js'><\/script>",
-        "app.js": "console.log('JS running');",
-        "main.py": "print('Hello Python')"
+        "index.html":"<h1>Hello</h1><script src='app.js'><\/script>",
+        "app.js":"console.log('JS working')",
+        "main.py":"print('Hello Python')",
+        "layout.xml":"<LinearLayout android:orientation='vertical'><TextView android:text='Hello'/><Button android:text='Click'/></LinearLayout>",
+        "query.sql":"SELECT 1+1;"
     }
 };
 
-const state = { active: "index.html" };
+const state = { active:"index.html" };
 
 // ACE
 const editor = ace.edit("editor");
 editor.setTheme("ace/theme/twilight");
-editor.session.setMode("ace/mode/html");
+
+// LIVE MODE
+let liveTimer=null;
+editor.session.on("change", ()=>{
+    if(!document.body.classList.contains("split")) return;
+
+    clearTimeout(liveTimer);
+    liveTimer=setTimeout(()=>runner.runLive(),300);
+});
 
 // UI
 const ui = {
-    refresh() {
-        const list = document.getElementById("fileList");
-        list.innerHTML = "";
-        Object.keys(fs.files).forEach(f => {
-            const div = document.createElement("div");
-            div.innerText = f;
-            div.onclick = () => this.open(f);
-            list.appendChild(div);
+    refresh(){
+        files.innerHTML="";
+        Object.keys(fs.files).forEach(f=>{
+            let d=document.createElement("div");
+            d.innerText=f;
+            d.onclick=()=>this.open(f);
+            files.appendChild(d);
         });
     },
 
-    open(f) {
-        state.active = f;
-        editor.setValue(fs.files[f], -1);
+    open(f){
+        state.active=f;
+        editor.setValue(fs.files[f],-1);
 
-        if (f.endsWith(".js")) editor.session.setMode("ace/mode/javascript");
-        else if (f.endsWith(".py")) editor.session.setMode("ace/mode/python");
+        if(f.endsWith(".js")) editor.session.setMode("ace/mode/javascript");
+        else if(f.endsWith(".py")) editor.session.setMode("ace/mode/python");
+        else if(f.endsWith(".sql")) editor.session.setMode("ace/mode/sql");
+        else if(f.endsWith(".xml")) editor.session.setMode("ace/mode/xml");
         else editor.session.setMode("ace/mode/html");
     },
 
-    newFile() {
-        const name = prompt("filename");
-        if (!name) return;
-        fs.files[name] = "";
+    newFile(){
+        let n=prompt("filename");
+        if(!n) return;
+        fs.files[n]="";
         this.refresh();
     },
 
-    toggleSplit() {
+    toggleSplit(){
         document.body.classList.toggle("split");
+        if(document.body.classList.contains("split")) runner.runLive();
     },
 
-    showTab(tab) {
-        document.getElementById("terminal").style.display = tab === "terminal" ? "block" : "none";
-        document.getElementById("preview").style.display = tab === "preview" ? "block" : "none";
+    show(tab){
+        terminal.style.display = tab==="terminal"?"block":"none";
+        preview.style.display = tab==="preview"?"block":"none";
     }
 };
 
 // RUNNER
 const runner = {
-    run() {
-        if (!state.active) return;
 
-        fs.files[state.active] = editor.getValue();
+run(){
+    if(!state.active) return;
+    fs.files[state.active]=editor.getValue();
 
-        const ext = state.active.split(".").pop();
+    let ext=state.active.split(".").pop();
 
-        if (ext === "html" || ext === "js") this.runWeb();
-        else if (ext === "py") this.runPython(fs.files[state.active]);
-    },
+    if(["html","js"].includes(ext)) this.runWeb();
+    else if(ext==="jsx") this.runReact();
+    else if(ext==="py") this.runPython(fs.files[state.active]);
+    else if(ext==="sql") this.runSQL(fs.files[state.active]);
+    else if(ext==="xml") this.runXML(fs.files[state.active]);
+},
 
-    runWeb() {
-        let html = fs.files["index.html"] || "";
+runLive(){
+    if(!state.active) return;
+    fs.files[state.active]=editor.getValue();
 
-        html = html.replace(/<script src="(.+?)"><\/script>/g, (m, p1) => {
-            return "<script>" + (fs.files[p1] || "") + "<\/script>";
-        });
+    let ext=state.active.split(".").pop();
 
-        html = `
-        <!DOCTYPE html>
-        <html>
-        <body>${html}</body>
-        </html>
-        `;
+    if(["html","js"].includes(ext)) this.runWeb();
+    else if(ext==="jsx") this.runReact();
+    else if(ext==="xml") this.runXML(fs.files[state.active]);
+},
 
-        document.getElementById("preview").srcdoc = html;
-        ui.showTab("preview");
-    },
+runWeb(){
+    let html=fs.files["index.html"]||"";
 
-    runPython(code) {
-        const term = document.getElementById("terminal");
-        term.innerHTML = "";
+    html=html.replace(/<script src="(.+?)"><\/script>/g,(m,p)=>
+        "<script>"+(fs.files[p]||"")+"<\/script>"
+    );
 
-        Sk.configure({
-            output: (t) => term.innerHTML += t.replace(/\n/g,"<br>"),
-            read: (x) => Sk.builtinFiles.files[x] || null
-        });
+    html=`<!DOCTYPE html><html><body>${html}</body></html>`;
 
-        Sk.misceval.asyncToPromise(() =>
-            Sk.importMainWithBody("<stdin>", false, code, true)
-        ).catch(e => {
-            term.innerHTML += "Error: " + e;
-        });
+    preview.srcdoc=html;
+    ui.show("preview");
+},
 
-        ui.showTab("terminal");
+runReact(){
+    let code=fs.files[state.active];
+
+    let doc=`
+<div id="root"></div>
+<script>
+window.onerror=function(m){document.body.innerHTML+="<pre style='color:red'>"+m+"</pre>";}
+<\/script>
+<script src="https://unpkg.com/react@18.2.0/umd/react.development.js"><\/script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"><\/script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+<script type="text/babel">
+try{${code}}catch(e){document.body.innerHTML+="<pre>"+e+"</pre>";}
+<\/script>`;
+
+    preview.srcdoc=doc;
+    ui.show("preview");
+},
+
+runPython(code){
+    terminal.innerHTML="";
+    Sk.configure({
+        output:t=>terminal.innerHTML+=t.replace(/\n/g,"<br>"),
+        read:x=>Sk.builtinFiles.files[x]||null
+    });
+
+    Sk.misceval.asyncToPromise(()=>
+        Sk.importMainWithBody("<stdin>",false,code,true)
+    ).catch(e=>terminal.innerHTML+="Error: "+e);
+
+    ui.show("terminal");
+},
+
+runSQL(code){
+    terminal.innerHTML="";
+    try{
+        let db=new SQL.Database();
+        let res=db.exec(code);
+
+        if(res.length===0) terminal.innerHTML="OK";
+        else{
+            res.forEach(t=>{
+                terminal.innerHTML+=t.columns.join(" | ")+"<br>";
+                t.values.forEach(r=>{
+                    terminal.innerHTML+=r.join(" | ")+"<br>";
+                });
+            });
+        }
+    }catch(e){
+        terminal.innerHTML="SQL Error: "+e.message;
     }
+    ui.show("terminal");
+},
+
+runXML(code){
+    try{
+        let parser=new DOMParser();
+        let xml=parser.parseFromString(code,"text/xml");
+
+        function render(n){
+            let el;
+
+            switch(n.nodeName){
+                case "LinearLayout":
+                    el=document.createElement("div");
+                    el.style.display="flex";
+                    el.style.flexDirection = n.getAttribute("android:orientation")==="vertical"?"column":"row";
+                    break;
+
+                case "TextView":
+                    el=document.createElement("div");
+                    el.innerText=n.getAttribute("android:text")||"Text";
+                    break;
+
+                case "Button":
+                    el=document.createElement("button");
+                    el.innerText=n.getAttribute("android:text")||"Button";
+                    break;
+
+                default:
+                    el=document.createElement("div");
+            }
+
+            el.style.border="1px solid #ccc";
+            el.style.margin="5px";
+            el.style.padding="5px";
+
+            [...n.children].forEach(c=>el.appendChild(render(c)));
+            return el;
+        }
+
+        let root=render(xml.documentElement);
+
+        let doc=document.createElement("div");
+        doc.appendChild(root);
+
+        preview.srcdoc=doc.innerHTML;
+
+    }catch(e){
+        terminal.innerHTML="XML Error: "+e.message;
+        ui.show("terminal");
+        return;
+    }
+
+    ui.show("preview");
+}
+
 };
 
 // INIT
 ui.refresh();
 ui.open("index.html");
+ui.show("preview");
 
 </script>
 </body>
