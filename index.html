@@ -1,283 +1,677 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pure·ide · ultimate build</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Studio · Multi-Language IDE</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1e1e1e;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #e6edf3;
+            overflow: hidden;
+        }
+        .titlebar {
+            background: #2c2c2c;
+            padding: 0.4rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            border-bottom: 1px solid #3c3c3c;
+            font-size: 0.9rem;
+        }
+        .titlebar .brand {
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+        .titlebar .brand i { color: #61dafb; margin-right: 6px; }
+        .titlebar button {
+            background: transparent;
+            border: none;
+            color: #ccc;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.3rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: 0.1s;
+            cursor: pointer;
+        }
+        .titlebar button:hover { background: #3c3c3c; color: white; }
+        .titlebar .run-btn { background: #3ddc84; color: #1e1e1e; }
+        .titlebar .run-btn:hover { background: #5fe0a0; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: #2c2c2c;
+            min-width: 180px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            z-index: 1000;
+            border-radius: 6px;
+            border: 1px solid #3c3c3c;
+            top: 100%;
+            left: 0;
+        }
+        .dropdown-content button {
+            width: 100%;
+            text-align: left;
+            color: #ccc;
+            padding: 10px 16px;
+            border-radius: 0;
+        }
+        .dropdown-content button:hover { background: #3ddc84; color: #1e1e1e; }
+        .dropdown:hover .dropdown-content { display: block; }
 
-<!-- Libraries -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .editor-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+            min-width: 300px;
+            border-right: 1px solid #3c3c3c;
+        }
+        .tabs-row {
+            display: flex;
+            background: #252526;
+            height: 36px;
+            overflow-x: auto;
+        }
+        .tab {
+            background: #2d2d2d;
+            color: #888;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            border-right: 1px solid #1e1e1e;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .tab.active {
+            background: #1e1e1e;
+            color: #fff;
+            border-top: 2px solid #61dafb;
+        }
+        .tab .file-icon { font-size: 0.9rem; }
+        .tab .close-tab { margin-left: auto; font-size: 1.1rem; opacity: 0.5; }
+        .tab .close-tab:hover { opacity: 1; color: #f85149; }
+        #editor { flex: 1; width: 100%; font-size: 14px; }
 
-<style>
-body { margin:0; background:#0d1117; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; height:100vh;}
-.topbar { padding:10px; background:#161b22; display:flex; gap:10px;}
-.workspace { display:flex; flex:1;}
-.sidebar { width:200px; border-right:1px solid #333; padding:10px;}
-#editor { flex:1; height:100%;}
-.output { width:50%; display:none; flex-direction:column; border-left:1px solid #333;}
-body.split .output { display:flex;}
-.terminal { flex:1; padding:10px; overflow:auto; font-family:monospace;}
-iframe { flex:1; border:none; background:#fff;}
-button { cursor:pointer;}
-</style>
+        .design-panel {
+            width: 45%;
+            min-width: 320px;
+            background: #2c2c2c;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #3c3c3c;
+        }
+        .design-header {
+            background: #252526;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+        .design-header i { color: #61dafb; }
+        
+        .preview-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .visual-output {
+            flex: 1;
+            background: white;
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+        .console-output {
+            height: 180px;
+            background: #1e1e1e;
+            border-top: 2px solid #3c3c3c;
+            padding: 10px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            color: #d4d4d4;
+            overflow-y: auto;
+            display: none;
+        }
+        .console-line { margin-bottom: 4px; }
+        .console-log { color: #d4d4d4; }
+        .console-error { color: #f48771; }
+        .console-info { color: #6a9955; }
+        .console-warn { color: #cca700; }
+
+        .status-line {
+            background: #007acc;
+            padding: 2px 12px;
+            font-size: 0.8rem;
+            color: #fff;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+        }
+        .status-item { display: flex; align-items: center; gap: 6px; }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #61dafb;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
-
 <body>
+    <div class="titlebar">
+        <div class="brand"><i class="bi bi-code-slash"></i> Code Studio</div>
+        
+        <div class="dropdown">
+            <button><i class="bi bi-file-earmark-plus"></i> New File</button>
+            <div class="dropdown-content">
+                <button onclick="fileManager.createFile('html')"><i class="bi bi-filetype-html"></i> HTML</button>
+                <button onclick="fileManager.createFile('js')"><i class="bi bi-filetype-js"></i> JavaScript</button>
+                <button onclick="fileManager.createFile('jsx')"><i class="bi bi-filetype-jsx"></i> React JSX</button>
+                <button onclick="fileManager.createFile('py')"><i class="bi bi-filetype-py"></i> Python</button>
+                <button onclick="fileManager.createFile('xml')"><i class="bi bi-file-earmark-code"></i> Android XML</button>
+            </div>
+        </div>
 
-<div class="topbar">
-<button onclick="ui.newFile()">New</button>
-<button onclick="ui.toggleSplit()">Split</button>
-<button onclick="runner.run()">Run</button>
-</div>
+        <button class="run-btn" onclick="runner.runCurrentFile()"><i class="bi bi-play-fill"></i> Run</button>
+    </div>
 
-<div class="workspace">
-<div class="sidebar" id="files"></div>
-<div id="editor"></div>
+    <div class="workspace">
+        <div id="editorZone" class="editor-zone">
+            <div class="tabs-row" id="tabsContainer"></div>
+            <div id="editor"></div>
+            <div class="status-line">
+                <span class="status-item"><span id="langStatus">Ready</span></span>
+                <span class="status-item">
+                    <div class="spinner" id="loadingSpinner"></div>
+                    <span id="statusMsg">Multi-language IDE</span>
+                </span>
+            </div>
+        </div>
 
-<div class="output">
-<div>
-<button onclick="ui.show('terminal')">Terminal</button>
-<button onclick="ui.show('preview')">Preview</button>
-</div>
-<div id="terminal" class="terminal"></div>
-<iframe id="preview"></iframe>
-</div>
-</div>
+        <div class="design-panel">
+            <div class="design-header">
+                <i class="bi bi-terminal"></i> Output
+                <span style="margin-left:auto; cursor:pointer;" onclick="runner.clearConsole()" title="Clear Console">
+                    <i class="bi bi-trash"></i>
+                </span>
+            </div>
+            <div class="preview-container">
+                <iframe id="previewFrame" class="visual-output" sandbox="allow-scripts allow-modals"></iframe>
+                <div id="consoleOutput" class="console-output"></div>
+            </div>
+        </div>
+    </div>
 
-<script>
-// ERROR HANDLER
-window.onerror = (m,u,l)=> {
-    terminal.innerHTML += `JS Error: ${m} (line ${l})<br>`;
-};
-
-// FILE SYSTEM
-const fs = {
-    files: {
-        "index.html":"<h1>Hello</h1><script src='app.js'><\/script>",
-        "app.js":"console.log('JS working')",
-        "main.py":"print('Hello Python')",
-        "layout.xml":"<LinearLayout android:orientation='vertical'><TextView android:text='Hello'/><Button android:text='Click'/></LinearLayout>",
-        "query.sql":"SELECT 1+1;"
-    }
-};
-
-const state = { active:"index.html" };
-
-// ACE
-const editor = ace.edit("editor");
-editor.setTheme("ace/theme/twilight");
-
-// LIVE MODE
-let liveTimer=null;
-editor.session.on("change", ()=>{
-    if(!document.body.classList.contains("split")) return;
-
-    clearTimeout(liveTimer);
-    liveTimer=setTimeout(()=>runner.runLive(),300);
-});
-
-// UI
-const ui = {
-    refresh(){
-        files.innerHTML="";
-        Object.keys(fs.files).forEach(f=>{
-            let d=document.createElement("div");
-            d.innerText=f;
-            d.onclick=()=>this.open(f);
-            files.appendChild(d);
-        });
-    },
-
-    open(f){
-        state.active=f;
-        editor.setValue(fs.files[f],-1);
-
-        if(f.endsWith(".js")) editor.session.setMode("ace/mode/javascript");
-        else if(f.endsWith(".py")) editor.session.setMode("ace/mode/python");
-        else if(f.endsWith(".sql")) editor.session.setMode("ace/mode/sql");
-        else if(f.endsWith(".xml")) editor.session.setMode("ace/mode/xml");
-        else editor.session.setMode("ace/mode/html");
-    },
-
-    newFile(){
-        let n=prompt("filename");
-        if(!n) return;
-        fs.files[n]="";
-        this.refresh();
-    },
-
-    toggleSplit(){
-        document.body.classList.toggle("split");
-        if(document.body.classList.contains("split")) runner.runLive();
-    },
-
-    show(tab){
-        terminal.style.display = tab==="terminal"?"block":"none";
-        preview.style.display = tab==="preview"?"block":"none";
-    }
-};
-
-// RUNNER
-const runner = {
-
-run(){
-    if(!state.active) return;
-    fs.files[state.active]=editor.getValue();
-
-    let ext=state.active.split(".").pop();
-
-    if(["html","js"].includes(ext)) this.runWeb();
-    else if(ext==="jsx") this.runReact();
-    else if(ext==="py") this.runPython(fs.files[state.active]);
-    else if(ext==="sql") this.runSQL(fs.files[state.active]);
-    else if(ext==="xml") this.runXML(fs.files[state.active]);
-},
-
-runLive(){
-    if(!state.active) return;
-    fs.files[state.active]=editor.getValue();
-
-    let ext=state.active.split(".").pop();
-
-    if(["html","js"].includes(ext)) this.runWeb();
-    else if(ext==="jsx") this.runReact();
-    else if(ext==="xml") this.runXML(fs.files[state.active]);
-},
-
-runWeb(){
-    let html=fs.files["index.html"]||"";
-
-    html=html.replace(/<script src="(.+?)"><\/script>/g,(m,p)=>
-        "<script>"+(fs.files[p]||"")+"<\/script>"
+    <script>
+        let editor;
+        const previewFrame = document.getElementById('previewFrame');
+        const consoleElement = document.getElementById('consoleOutput');
+        const spinner = document.getElementById('loadingSpinner');
+        
+        const fileManager = {
+            files: {
+                'index.html': {
+                    type: 'html',
+                    content: `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+        h1 { color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Hello HTML</h1>
+    <p>Edit this code to see live preview.</p>
+</body>
+</html>`
+                },
+                'app.jsx': {
+                    type: 'jsx',
+                    content: `function App() {
+    const [count, setCount] = React.useState(0);
+    return (
+        <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+            <h1 style={{ color: '#61dafb' }}>React App</h1>
+            <p>Count: {count}</p>
+            <button onClick={() => setCount(c => c + 1)}>Increment</button>
+        </div>
     );
-
-    html=`<!DOCTYPE html><html><body>${html}</body></html>`;
-
-    preview.srcdoc=html;
-    ui.show("preview");
-},
-
-runReact(){
-    let code=fs.files[state.active];
-
-    let doc=`
-<div id="root"></div>
-<script>
-window.onerror=function(m){document.body.innerHTML+="<pre style='color:red'>"+m+"</pre>";}
-<\/script>
-<script src="https://unpkg.com/react@18.2.0/umd/react.development.js"><\/script>
-<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"><\/script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-<script type="text/babel">
-try{${code}}catch(e){document.body.innerHTML+="<pre>"+e+"</pre>";}
-<\/script>`;
-
-    preview.srcdoc=doc;
-    ui.show("preview");
-},
-
-runPython(code){
-    terminal.innerHTML="";
-    Sk.configure({
-        output:t=>terminal.innerHTML+=t.replace(/\n/g,"<br>"),
-        read:x=>Sk.builtinFiles.files[x]||null
-    });
-
-    Sk.misceval.asyncToPromise(()=>
-        Sk.importMainWithBody("<stdin>",false,code,true)
-    ).catch(e=>terminal.innerHTML+="Error: "+e);
-
-    ui.show("terminal");
-},
-
-runSQL(code){
-    terminal.innerHTML="";
-    try{
-        let db=new SQL.Database();
-        let res=db.exec(code);
-
-        if(res.length===0) terminal.innerHTML="OK";
-        else{
-            res.forEach(t=>{
-                terminal.innerHTML+=t.columns.join(" | ")+"<br>";
-                t.values.forEach(r=>{
-                    terminal.innerHTML+=r.join(" | ")+"<br>";
-                });
-            });
-        }
-    }catch(e){
-        terminal.innerHTML="SQL Error: "+e.message;
-    }
-    ui.show("terminal");
-},
-
-runXML(code){
-    try{
-        let parser=new DOMParser();
-        let xml=parser.parseFromString(code,"text/xml");
-
-        function render(n){
-            let el;
-
-            switch(n.nodeName){
-                case "LinearLayout":
-                    el=document.createElement("div");
-                    el.style.display="flex";
-                    el.style.flexDirection = n.getAttribute("android:orientation")==="vertical"?"column":"row";
-                    break;
-
-                case "TextView":
-                    el=document.createElement("div");
-                    el.innerText=n.getAttribute("android:text")||"Text";
-                    break;
-
-                case "Button":
-                    el=document.createElement("button");
-                    el.innerText=n.getAttribute("android:text")||"Button";
-                    break;
-
-                default:
-                    el=document.createElement("div");
-            }
-
-            el.style.border="1px solid #ccc";
-            el.style.margin="5px";
-            el.style.padding="5px";
-
-            [...n.children].forEach(c=>el.appendChild(render(c)));
-            return el;
-        }
-
-        let root=render(xml.documentElement);
-
-        let doc=document.createElement("div");
-        doc.appendChild(root);
-
-        preview.srcdoc=doc.innerHTML;
-
-    }catch(e){
-        terminal.innerHTML="XML Error: "+e.message;
-        ui.show("terminal");
-        return;
-    }
-
-    ui.show("preview");
 }
+ReactDOM.render(<App />, document.getElementById('root'));`
+                },
+                'script.js': {
+                    type: 'js',
+                    content: `// JavaScript Demo
+console.log("Hello from JavaScript!");
+console.log("2 + 2 =", 2+2);`
+                },
+                'main.py': {
+                    type: 'py',
+                    content: `# Python Demo
+import math
+print("Hello from Python!")
+print("Sqrt of 16 is", math.sqrt(16))`
+                },
+                'layout.xml': {
+                    type: 'xml',
+                    content: `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#FFFFFF">
 
-};
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome to Android"
+        android:textSize="24sp"
+        android:textColor="#2196F3"
+        android:layout_marginBottom="16dp"/>
 
-// INIT
-ui.refresh();
-ui.open("index.html");
-ui.show("preview");
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter your name"
+        android:padding="12dp"
+        android:background="#F5F5F5"
+        android:layout_marginBottom="16dp"/>
 
-</script>
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CLICK ME"
+        android:backgroundTint="#4CAF50"
+        android:textColor="#FFFFFF"/>
+
+</LinearLayout>`
+                }
+            },
+            activeFile: 'index.html',
+
+            init() {
+                editor = ace.edit('editor');
+                editor.setTheme('ace/theme/tomorrow_night');
+                editor.setOptions({
+                    enableBasicAutocompletion: true,
+                    enableLiveAutocompletion: true,
+                    fontSize: '14px'
+                });
+
+                this.switchTab('index.html');
+                
+                editor.session.on('change', () => {
+                    clearTimeout(this.updateTimer);
+                    this.updateTimer = setTimeout(() => {
+                        this.saveCurrentFile();
+                        const file = this.files[this.activeFile];
+                        if (['html', 'jsx', 'xml'].includes(file.type)) {
+                            runner.runCurrentFile();
+                        }
+                    }, 500);
+                });
+            },
+
+            createFile(type) {
+                const names = { 'html': 'untitled.html', 'js': 'script.js', 'jsx': 'component.jsx', 'py': 'main.py', 'xml': 'layout.xml' };
+                let name = names[type];
+                let counter = 1;
+                while (this.files[name]) {
+                    name = `${name.split('.')[0]}_${counter}.${type}`;
+                    counter++;
+                }
+                this.files[name] = { type: type, content: this.getDefaultTemplate(type) };
+                this.switchTab(name);
+            },
+
+            getDefaultTemplate(type) {
+                const templates = {
+                    'html': '<!DOCTYPE html>\n<html>\n<head>\n    <title>New Page</title>\n</head>\n<body>\n    <h1>Hello</h1>\n</body>\n</html>',
+                    'js': '// JavaScript\nconsole.log("Hello World");',
+                    'jsx': 'function Component() {\n    return <div>New React Component</div>;\n}\nReactDOM.render(<Component />, document.getElementById("root"));',
+                    'py': '# Python Script\nprint("Hello World")',
+                    'xml': '<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout\n    xmlns:android="http://schemas.android.com/apk/res/android"\n    android:layout_width="match_parent"\n    android:layout_height="match_parent"\n    android:orientation="vertical">\n\n</LinearLayout>'
+                };
+                return templates[type];
+            },
+
+            switchTab(filename) {
+                this.saveCurrentFile();
+                this.activeFile = filename;
+                const file = this.files[filename];
+                
+                editor.setValue(file.content, -1);
+                const modeMap = {
+                    'html': 'ace/mode/html',
+                    'js': 'ace/mode/javascript',
+                    'jsx': 'ace/mode/jsx',
+                    'py': 'ace/mode/python',
+                    'xml': 'ace/mode/xml'
+                };
+                editor.session.setMode(modeMap[file.type]);
+                
+                this.renderTabs();
+                document.getElementById('langStatus').innerText = file.type.toUpperCase();
+                runner.runCurrentFile();
+            },
+
+            saveCurrentFile() {
+                if (this.activeFile && this.files[this.activeFile]) {
+                    this.files[this.activeFile].content = editor.getValue();
+                }
+            },
+
+            renderTabs() {
+                const container = document.getElementById('tabsContainer');
+                container.innerHTML = '';
+                
+                Object.keys(this.files).forEach(name => {
+                    const file = this.files[name];
+                    const tab = document.createElement('div');
+                    tab.className = `tab ${name === this.activeFile ? 'active' : ''}`;
+                    
+                    const icons = { 
+                        'html': 'bi-filetype-html', 
+                        'js': 'bi-filetype-js', 
+                        'jsx': 'bi-filetype-jsx', 
+                        'py': 'bi-filetype-py',
+                        'xml': 'bi-file-earmark-code' 
+                    };
+                    tab.innerHTML = `
+                        <i class="bi ${icons[file.type]} file-icon"></i>
+                        ${name}
+                        <span class="close-tab" onclick="event.stopPropagation(); fileManager.closeTab('${name}')">&times;</span>
+                    `;
+                    tab.onclick = () => this.switchTab(name);
+                    container.appendChild(tab);
+                });
+            },
+
+            closeTab(name) {
+                if (Object.keys(this.files).length <= 1) return;
+                delete this.files[name];
+                if (this.activeFile === name) {
+                    this.switchTab(Object.keys(this.files)[0]);
+                } else {
+                    this.renderTabs();
+                }
+            }
+        };
+
+        const runner = {
+            logs: [],
+            
+            runCurrentFile() {
+                fileManager.saveCurrentFile();
+                const file = fileManager.files[fileManager.activeFile];
+                spinner.style.display = 'inline-block';
+                
+                this.clearConsole();
+                
+                if (file.type === 'html') this.runHTML(file.content);
+                else if (file.type === 'js') this.runJS(file.content);
+                else if (file.type === 'jsx') this.runReact(file.content);
+                else if (file.type === 'py') this.runPython(file.content);
+                else if (file.type === 'xml') this.runXML(file.content);
+                
+                setTimeout(() => spinner.style.display = 'none', 300);
+            },
+
+            runHTML(code) {
+                consoleElement.style.display = 'none';
+                previewFrame.style.display = 'block';
+                previewFrame.srcdoc = code;
+            },
+
+            runJS(code) {
+                consoleElement.style.display = 'block';
+                previewFrame.style.display = 'none';
+                previewFrame.srcdoc = ''; 
+                
+                this.log("info", `> Running ${fileManager.activeFile}`);
+                
+                const customConsole = {
+                    log: (...args) => this.log('log', args.map(a => this.stringify(a)).join(' ')),
+                    error: (...args) => this.log('error', args.map(a => this.stringify(a)).join(' ')),
+                    warn: (...args) => this.log('warn', args.map(a => this.stringify(a)).join(' '))
+                };
+
+                try {
+                    const fn = new Function('console', code);
+                    fn(customConsole);
+                } catch (e) {
+                    this.log('error', e.message);
+                }
+            },
+
+            runReact(code) {
+                consoleElement.style.display = 'none';
+                previewFrame.style.display = 'block';
+                
+                const html = `
+                    <div id="root"></div>
+                    <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+                    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+                    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+                    <script type="text/babel">
+                        ${code}
+                    <\/script>
+                `;
+                previewFrame.srcdoc = html;
+            },
+
+            runPython(code) {
+                consoleElement.style.display = 'block';
+                previewFrame.style.display = 'none';
+                previewFrame.srcdoc = '';
+                this.log("info", `> Running ${fileManager.activeFile}`);
+
+                function outf(text) {
+                    runner.log('log', text.replace(/\n$/, ""));
+                }
+                
+                function builtinRead(x) {
+                    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                        throw "File not found: '" + x + "'";
+                    return Sk.builtinFiles["files"][x];
+                }
+
+                Sk.configure({
+                    output: outf,
+                    read: builtinRead,
+                    __future__: Sk.python3
+                });
+
+                Sk.misceval.asyncToPromise(function() {
+                    return Sk.importMainWithBody("<stdin>", false, code, true);
+                }).then(function(mod) {
+                    runner.log('info', '✓ Execution finished');
+                }, function(err) {
+                    runner.log('error', err.toString());
+                });
+            },
+
+            runXML(code) {
+                consoleElement.style.display = 'none';
+                previewFrame.style.display = 'block';
+                
+                // Android XML Parser & Renderer
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(code, "text/xml");
+                const errorNode = xmlDoc.querySelector('parsererror');
+
+                if (errorNode) {
+                    previewFrame.srcdoc = `<body style="background:#1e1e1e;color:#f85149;font-family:sans-serif;padding:20px;">XML Error: <br><pre>${errorNode.textContent}</pre></body>`;
+                    return;
+                }
+
+                // Styles needed for the Android Preview
+                const styles = `
+                    body { margin:0; background:#1a1a1a; display:flex; justify-content:center; align-items:center; height:100vh; font-family: 'Roboto', sans-serif; }
+                    .device { width:360px; height:640px; background:#fff; border-radius:36px; overflow:hidden; box-shadow:0 15px 35px rgba(0,0,0,0.6); border:8px solid #333; display:flex; flex-direction:column; }
+                    .status-bar { background:#2196F3; padding:4px 16px; color:#fff; font-size:12px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+                    .content { flex:1; background:#f5f5f5; padding:16px; overflow-y:auto; position:relative; }
+                    
+                    /* Widget Styles */
+                    .widget { width:100%; margin-bottom:12px; box-sizing:border-box; }
+                    .linear-layout { display:flex; flex-direction:column; }
+                    .linear-layout.horizontal { flex-direction:row; gap:8px; }
+                    .text-view { color:#333; font-size:14px; }
+                    .button { background:#2196F3; color:#fff; padding:12px; border-radius:4px; text-align:center; font-weight:500; border:none; cursor:pointer; }
+                    .edit-text { background:#fff; border-bottom:2px solid #2196F3; padding:10px 4px; color:#333; font-size:14px; }
+                    .image-view { background:#e0e0e0; min-height:100px; display:flex; align-items:center; justify-content:center; color:#aaa; border-radius:8px; }
+                `;
+                
+                function parseNode(node) {
+                    if (node.nodeType !== 1) return '';
+                    
+                    let tag = node.tagName.toLowerCase();
+                    let attrs = {};
+                    for (let a of node.attributes) attrs[a.name] = a.value;
+                    
+                    let style = '';
+                    let classes = 'widget';
+                    let content = '';
+                    
+                    // Process children first (recursive)
+                    let childrenHtml = '';
+                    for (let child of node.childNodes) {
+                        childrenHtml += parseNode(child);
+                    }
+
+                    // Handle Android attributes mapping
+                    if (attrs['android:background']) style += `background:${attrs['android:background']};`;
+                    if (attrs['android:textColor']) style += `color:${attrs['android:textColor']};`;
+                    if (attrs['android:textSize']) style += `font-size:${attrs['android:textSize']};`;
+                    if (attrs['android:padding']) style += `padding:${attrs['android:padding']};`;
+                    if (attrs['android:layout_marginBottom']) style += `margin-bottom:${attrs['android:layout_marginBottom']};`;
+                    if (attrs['android:layout_gravity'] === 'center_horizontal') style += `margin:0 auto;`;
+                    if (attrs['android:layout_width'] === 'match_parent') style += `width:100%;`;
+
+                    // Map XML tags to HTML
+                    if (tag === 'linearlayout') {
+                        classes = 'widget linear-layout';
+                        if (attrs['android:orientation'] === 'horizontal') classes += ' horizontal';
+                        return `<div class="${classes}" style="${style}">${childrenHtml}</div>`;
+                    } 
+                    else if (tag === 'textview') {
+                        classes = 'widget text-view';
+                        content = attrs['android:text'] || 'TextView';
+                        return `<div class="${classes}" style="${style}">${content}</div>`;
+                    } 
+                    else if (tag === 'button') {
+                        classes = 'widget button';
+                        content = attrs['android:text'] || 'Button';
+                        if (attrs['android:backgroundtint']) style += `background:${attrs['android:backgroundtint']};`;
+                        return `<div class="${classes}" style="${style}">${content}</div>`;
+                    } 
+                    else if (tag === 'edittext') {
+                        classes = 'widget edit-text';
+                        content = attrs['android:hint'] || 'EditText';
+                        return `<div class="${classes}" style="${style}">${content}</div>`;
+                    } 
+                    else if (tag === 'imageview') {
+                        classes = 'widget image-view';
+                        content = '🖼️ Image';
+                        return `<div class="${classes}" style="${style}">${content}</div>`;
+                    }
+                    
+                    return childrenHtml; // Fallback for containers
+                }
+
+                const bodyContent = parseNode(xmlDoc.documentElement);
+                
+                const html = `
+                <html>
+                    <head><style>${styles}</style></head>
+                    <body>
+                        <div class="device">
+                            <div class="status-bar">
+                                <span>10:25</span>
+                                <span>Android Preview</span>
+                            </div>
+                            <div class="content">
+                                ${bodyContent}
+                            </div>
+                        </div>
+                    </body>
+                </html>`;
+
+                previewFrame.srcdoc = html;
+            },
+
+            log(type, message) {
+                const div = document.createElement('div');
+                div.className = `console-line console-${type}`;
+                div.innerText = message;
+                consoleElement.appendChild(div);
+                consoleElement.scrollTop = consoleElement.scrollHeight;
+            },
+
+            clearConsole() {
+                consoleElement.innerHTML = '';
+            },
+
+            stringify(obj) {
+                if (typeof obj === 'object') {
+                    try { return JSON.stringify(obj, null, 2); }
+                    catch(e) { return String(obj); }
+                }
+                return String(obj);
+            }
+        };
+
+        window.onload = () => fileManager.init();
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                fileManager.saveCurrentFile();
+                document.getElementById('statusMsg').innerText = 'Saved!';
+                setTimeout(() => document.getElementById('statusMsg').innerText = 'Ready', 1500);
+            }
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                runner.runCurrentFile();
+            }
+        });
+    </script>
 </body>
 </html>
