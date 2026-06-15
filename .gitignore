@@ -2,20 +2,36 @@
 compiler/build/
 *.o
 *.obj
+*.out
+
+# Compiled executables
+bantu
+bantu.exe
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
+ehthumbs.db
 
 # IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # Node
 node_modules/
 out/
 
-# Package files
+# Package files (rebuild locally)
 *.vsix
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated files
+download/

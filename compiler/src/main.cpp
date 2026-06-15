@@ -333,7 +333,7 @@ int cmdBuild(const std::string& filePath) {
     // Use temp file to avoid REPL mode (bantu with no args starts REPL)
     script << "BANTU_TMPFILE=$(mktemp /tmp/bantu_XXXXXX.b)\n";
     script << "echo '" << encoded << "' | base64 -d > \"$BANTU_TMPFILE\"\n";
-    script << "\"$BANTU_BIN\" \"$BANTU_TMPFILE\"\n";
+    script << "\"$BANTU_BIN\" run \"$BANTU_TMPFILE\"\n";
     script << "rm -f \"$BANTU_TMPFILE\"\n";
 
     if (writeFile(outputPath, script.str())) {
