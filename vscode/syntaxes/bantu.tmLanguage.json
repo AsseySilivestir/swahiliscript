@@ -1,0 +1,251 @@
+{
+  "name": "Bantu",
+  "scopeName": "source.bantu",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#constants" },
+    { "include": "#types" },
+    { "include": "#sua-api" },
+    { "include": "#variables" },
+    { "include": "#functions" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.bantu",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": {
+            "0": { "name": "punctuation.definition.comment.bantu" }
+          }
+        },
+        {
+          "name": "comment.line.double-slash.bantu",
+          "match": "//.*$",
+          "captures": {
+            "0": { "name": "punctuation.definition.comment.bantu" }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.bantu",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.bantu",
+              "match": "\\\\([\"\\\\/bfnrt]|u[0-9a-fA-F]{4})"
+            }
+          ],
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.bantu" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.bantu" }
+          }
+        },
+        {
+          "name": "string.quoted.single.bantu",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.bantu",
+              "match": "\\\\(['\\\\/bfnrt]|u[0-9a-fA-F]{4})"
+            }
+          ],
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.bantu" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.bantu" }
+          }
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.bantu",
+          "match": "\\b0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.bantu",
+          "match": "\\b0[bB][01]+\\b"
+        },
+        {
+          "name": "constant.numeric.octal.bantu",
+          "match": "\\b0[oO][0-7]+\\b"
+        },
+        {
+          "name": "constant.numeric.float.bantu",
+          "match": "\\b[0-9]+\\.[0-9]+([eE][+-]?[0-9]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.bantu",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.bantu",
+          "match": "\\b(if|else|while|for|each|in|switch|case|default|break|continue)\\b"
+        },
+        {
+          "name": "keyword.declaration.bantu",
+          "match": "\\b(def|return|new|create|delete|update|calc)\\b"
+        },
+        {
+          "name": "keyword.io.bantu",
+          "match": "\\b(print|read|db|fetch|await)\\b"
+        },
+        {
+          "name": "keyword.modifier.bantu",
+          "match": "\\b(const|private|public|from|import|export)\\b"
+        },
+        {
+          "name": "keyword.exception.bantu",
+          "match": "\\b(try|catch)\\b"
+        },
+        {
+          "name": "keyword.other.bantu",
+          "match": "\\b(sua)\\b"
+        },
+        {
+          "name": "keyword.other.class.bantu",
+          "match": "\\b(class|extends)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.bantu",
+          "match": "\\b(true|false|null)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.bantu",
+          "match": "\\b(number|string|bool|list|dict|any|func)\\b"
+        }
+      ]
+    },
+    "sua-api": {
+      "patterns": [
+        {
+          "name": "support.function.sua.bantu",
+          "match": "\\b(sua)\\.(get|post|put|delete|start|stop|static)\\b",
+          "captures": {
+            "1": { "name": "keyword.other.bantu" },
+            "2": { "name": "support.function.sua.bantu" }
+          }
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.readwrite.bantu",
+          "match": "\\$[a-zA-Z_][a-zA-Z0-9_]*"
+        },
+        {
+          "name": "variable.other.bantu",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.bantu",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "entity.name.function.bantu" }
+          }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.ternary.bantu",
+          "match": "\\?|:"
+        },
+        {
+          "name": "keyword.operator.arithmetic.bantu",
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.comparison.bantu",
+          "match": "(==|!=|<=|>=|<|>)"
+        },
+        {
+          "name": "keyword.operator.logical.bantu",
+          "match": "(&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.assignment.bantu",
+          "match": "(=|\\+=|-=|\\*=|/=|%=)"
+        },
+        {
+          "name": "keyword.operator.bitwise.bantu",
+          "match": "(&|\\||\\^|~|<<|>>)"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.section.brackets.begin.bantu",
+          "match": "\\["
+        },
+        {
+          "name": "punctuation.section.brackets.end.bantu",
+          "match": "\\]"
+        },
+        {
+          "name": "punctuation.section.braces.begin.bantu",
+          "match": "\\{"
+        },
+        {
+          "name": "punctuation.section.braces.end.bantu",
+          "match": "\\}"
+        },
+        {
+          "name": "punctuation.section.parens.begin.bantu",
+          "match": "\\("
+        },
+        {
+          "name": "punctuation.section.parens.end.bantu",
+          "match": "\\)"
+        },
+        {
+          "name": "punctuation.separator.comma.bantu",
+          "match": ","
+        },
+        {
+          "name": "punctuation.separator.semicolon.bantu",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.accessor.bantu",
+          "match": "\\."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "name": "bantu",
+  "displayName": "Bantu",
+  "description": "Bantu programming language support for Visual Studio Code — syntax highlighting, snippets, themes, and run commands.",
+  "version": "1.0.0",
+  "publisher": "SilivestirPeterAssey",
+  "author": {
+    "name": "Silivestir Peter Assey"
+  },
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes"
+  ],
+  "keywords": [
+    "bantu",
+    "bantu-lang",
+    "language",
+    "programming",
+    "syntax"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:bantu"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "bantu",
+        "aliases": [
+          "Bantu",
+          "bantu"
+        ],
+        "extensions": [
+          ".b"
+        ],
+        "firstLine": "^#!.*bantu",
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/icon.png",
+          "dark": "./images/icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "bantu",
+        "scopeName": "source.bantu",
+        "path": "./syntaxes/bantu.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Catppuccin Mocha Bantu",
+        "uiTheme": "vs-dark",
+        "path": "./themes/catppuccin-mocha-bantu-color-theme.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "bantu",
+        "path": "./snippets/bantu.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "bantu.runFile",
+        "title": "Bantu: Run File",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.runCode",
+        "title": "Bantu: Run Code",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.buildFile",
+        "title": "Bantu: Build File",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.stopExecution",
+        "title": "Bantu: Stop Execution",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.createServer",
+        "title": "Bantu: Create Server",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.stopServer",
+        "title": "Bantu: Stop Server",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.newFile",
+        "title": "Bantu: New File",
+        "category": "Bantu"
+      },
+      {
+        "command": "bantu.initProject",
+        "title": "Bantu: Init Project",
+        "category": "Bantu"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "bantu.runFile",
+        "key": "F5",
+        "when": "editorLangId == bantu"
+      },
+      {
+        "command": "bantu.buildFile",
+        "key": "Ctrl+F5",
+        "when": "editorLangId == bantu"
+      },
+      {
+        "command": "bantu.stopExecution",
+        "key": "Shift+F5",
+        "when": "editorLangId == bantu"
+      },
+      {
+        "command": "bantu.createServer",
+        "key": "F6",
+        "when": "editorLangId == bantu"
+      }
+    ],
+    "configuration": {
+      "title": "Bantu",
+      "properties": {
+        "bantu.interpreterPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Bantu interpreter binary. Leave empty to auto-detect."
+        },
+        "bantu.runInTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Bantu files in the integrated terminal instead of the output channel."
+        },
+        "bantu.clearOutputBeforeRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Clear the output channel before running a Bantu file."
+        },
+        "bantu.showLanguageStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Bantu language status bar item."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[bantu]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.bracketPairColorization.enabled": true,
+        "editor.folding": true,
+        "editor.fontLigatures": true,
+        "editor.wordBasedSuggestions": "on",
+        "editor.suggestOnTriggerCharacters": true,
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": true
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

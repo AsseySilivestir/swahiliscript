@@ -1,0 +1,157 @@
+{
+  "print": {
+    "prefix": "print",
+    "body": ["print \"${1:message}\";"],
+    "description": "Print a message"
+  },
+  "print-var": {
+    "prefix": "print-var",
+    "body": ["print ${1:variable};"],
+    "description": "Print a variable"
+  },
+  "if": {
+    "prefix": "if",
+    "body": ["if (${1:condition}) {", "  ${2:// body}", "}"],
+    "description": "If statement"
+  },
+  "if-else": {
+    "prefix": "if-else",
+    "body": ["if (${1:condition}) {", "  ${2:// body}", "} else {", "  ${3:// else body}", "}"],
+    "description": "If-else statement"
+  },
+  "else": {
+    "prefix": "else",
+    "body": ["else {", "  ${1:// body}", "}"],
+    "description": "Else block"
+  },
+  "while": {
+    "prefix": "while",
+    "body": ["while (${1:condition}) {", "  ${2:// body}", "}"],
+    "description": "While loop"
+  },
+  "for": {
+    "prefix": "for",
+    "body": ["for (${1:i} = 0; ${1:i} < ${2:count}; ${1:i} += 1) {", "  ${3:// body}", "}"],
+    "description": "For loop"
+  },
+  "each": {
+    "prefix": "each",
+    "body": ["each (${1:item} in ${2:collection}) {", "  ${3:// body}", "}"],
+    "description": "Each loop (iterate over collection)"
+  },
+  "def": {
+    "prefix": "def",
+    "body": ["def ${1:functionName}(${2:parameters}) {", "  ${3:// body}", "  return ${4:value};", "}"],
+    "description": "Define a function"
+  },
+  "return": {
+    "prefix": "return",
+    "body": ["return ${1:value};"],
+    "description": "Return a value"
+  },
+  "try-catch": {
+    "prefix": "try-catch",
+    "body": ["try {", "  ${1:// try body}", "} catch (${2:error}) {", "  ${3:// catch body}", "}"],
+    "description": "Try-catch block"
+  },
+  "db": {
+    "prefix": "db",
+    "body": ["db ${1:operation} ${2:query};"],
+    "description": "Database operation"
+  },
+  "sua-get": {
+    "prefix": "sua-get",
+    "body": ["sua.get(\"${1:/path}\", func(req, res) {", "  ${2:// handler body}", "});"],
+    "description": "Sua GET route"
+  },
+  "sua-post": {
+    "prefix": "sua-post",
+    "body": ["sua.post(\"${1:/path}\", func(req, res) {", "  ${2:// handler body}", "});"],
+    "description": "Sua POST route"
+  },
+  "sua-put": {
+    "prefix": "sua-put",
+    "body": ["sua.put(\"${1:/path}\", func(req, res) {", "  ${2:// handler body}", "});"],
+    "description": "Sua PUT route"
+  },
+  "sua-delete": {
+    "prefix": "sua-delete",
+    "body": ["sua.delete(\"${1:/path}\", func(req, res) {", "  ${2:// handler body}", "});"],
+    "description": "Sua DELETE route"
+  },
+  "sua-start": {
+    "prefix": "sua-start",
+    "body": ["sua.start(${1:3000});"],
+    "description": "Start Sua server on port"
+  },
+  "sua-stop": {
+    "prefix": "sua-stop",
+    "body": ["sua.stop();"],
+    "description": "Stop Sua server"
+  },
+  "sua-static": {
+    "prefix": "sua-static",
+    "body": ["sua.static(\"${1:./public}\");"],
+    "description": "Serve static files with Sua"
+  },
+  "sua-server": {
+    "prefix": "sua-server",
+    "body": [
+      "sua.get(\"/\", func(req, res) {",
+      "  res.send(\"Hello from Bantu!\");",
+      "});",
+      "",
+      "sua.get(\"${1:/api}\", func(req, res) {",
+      "  res.send(${2:{ \"status\": \"ok\" }});",
+      "});",
+      "",
+      "sua.start(${3:3000});"
+    ],
+    "description": "Complete Sua server template"
+  },
+  "number": {
+    "prefix": "number",
+    "body": ["number ${1:varName} = ${2:0};"],
+    "description": "Declare a number variable"
+  },
+  "string": {
+    "prefix": "string",
+    "body": ["string ${1:varName} = \"${2:value}\";"],
+    "description": "Declare a string variable"
+  },
+  "bool": {
+    "prefix": "bool",
+    "body": ["bool ${1:varName} = ${2:true};"],
+    "description": "Declare a boolean variable"
+  },
+  "list": {
+    "prefix": "list",
+    "body": ["list ${1:varName} = [${2:items}];"],
+    "description": "Declare a list variable"
+  },
+  "dict": {
+    "prefix": "dict",
+    "body": ["dict ${1:varName} = {", "  ${2:key}: ${3:value}", "};"],
+    "description": "Declare a dict variable"
+  },
+  "const": {
+    "prefix": "const",
+    "body": ["const ${1:varName} = ${2:value};"],
+    "description": "Declare a constant"
+  },
+  "fetch": {
+    "prefix": "fetch",
+    "body": ["fetch \"${1:url}\";"],
+    "description": "Fetch from URL"
+  },
+  "hello": {
+    "prefix": "hello",
+    "body": ["print \"Hello, World!\";"],
+    "description": "Hello World program"
+  },
+  "region": {
+    "prefix": "region",
+    "body": ["// region ${1:name}", "${2:// code}", "// endregion"],
+    "description": "Folding region"
+  }
+}
