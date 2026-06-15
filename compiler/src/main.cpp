@@ -129,6 +129,10 @@ void printHelp() {
     std::cout << "    class, extends, new, create, delete,\n";
     std::cout << "    update, calc, import, export\n";
     std::cout << "\n";
+    std::cout << "  REAL-TIME (sua framework):\n";
+    std::cout << "    channel, signal, stun, stream,\n";
+    std::cout << "    broadcast, relay\n";
+    std::cout << "\n";
     std::cout << "  TYPES:\n";
     std::cout << "    number, string, bool, list, dict, any, func\n";
     std::cout << "\n";

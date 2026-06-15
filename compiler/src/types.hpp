@@ -173,6 +173,8 @@ enum class TokenType {
     CLASS, EXTENDS,
     IMPORT, EXPORT,
     TYPE_NUMBER, TYPE_STRING, TYPE_BOOL, TYPE_LIST, TYPE_DICT, TYPE_ANY, TYPE_FUNC,
+    // Real-Time (sua framework)
+    CHANNEL, SIGNAL, STUN, STREAM, BROADCAST, RELAY,
     // Special
     UNRECOGNIZED,
     END_OF_FILE

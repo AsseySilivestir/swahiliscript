@@ -270,6 +270,14 @@ private:
             {"import",   TokenType::IMPORT},
             {"export",   TokenType::EXPORT},
 
+            // Real-Time (sua framework)
+            {"channel",   TokenType::CHANNEL},
+            {"signal",    TokenType::SIGNAL},
+            {"stun",      TokenType::STUN},
+            {"stream",    TokenType::STREAM},
+            {"broadcast", TokenType::BROADCAST},
+            {"relay",     TokenType::RELAY},
+
             // Values
             {"true",     TokenType::TRUE},
             {"false",    TokenType::FALSE},

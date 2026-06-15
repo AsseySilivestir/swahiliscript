@@ -125,6 +125,10 @@
         {
           "name": "keyword.other.class.bantu",
           "match": "\\b(class|extends)\\b"
+        },
+        {
+          "name": "keyword.realtime.bantu",
+          "match": "\\b(channel|signal|stun|stream|broadcast|relay)\\b"
         }
       ]
     },
@@ -148,7 +152,7 @@
       "patterns": [
         {
           "name": "support.function.sua.bantu",
-          "match": "\\b(sua)\\.(get|post|put|delete|start|stop|static)\\b",
+          "match": "\\b(sua)\\.(get|post|put|delete|start|stop|static|channel|signal|stun|stream|broadcast|relay)\\b",
           "captures": {
             "1": { "name": "keyword.other.bantu" },
             "2": { "name": "support.function.sua.bantu" }
